@@ -25,9 +25,10 @@ namespace Janelia
         public bool debugSlowly = false;
 
         // Messages are strings of bytes, ending with the `terminator` character.
-        public SerialReader(string portname = "", byte terminator = 10, int readBufferSizeBytes = 256, int ringBufferCount = 1024)
+        public SerialReader(string portname = "", int baudrate = 115200, byte terminator = 10, int readBufferSizeBytes = 256, int ringBufferCount = 1024)
         {
             _portname = portname;
+            _baudrate = baudrate;
             _terminator = terminator;
             _readBufferSizeBytes = readBufferSizeBytes;
             _ringBufferCount = ringBufferCount;
@@ -48,7 +49,7 @@ namespace Janelia
                 {
                     try
                     {
-                        SerialPort test = new SerialPort(portname, 9600);
+                        SerialPort test = new SerialPort(portname, _baudrate);
                         test.Open();
                         test.Close();
                         _portname = portname;
@@ -62,7 +63,7 @@ namespace Janelia
                 if (debug)
                     Debug.Log(Now() + "SerialReader using port '" + _portname + "'");
 
-                _port = new SerialPort(_portname, 9600);
+                _port = new SerialPort(_portname, _baudrate);
                 if (debug)
                     Debug.Log(Now() + "SerialReader.Start() opening serial port '" + _portname + "'");
                 _port.Open();
@@ -179,6 +180,7 @@ namespace Janelia
         private System.Threading.Thread _thread;
 
         private string _portname;
+        private int _baudrate;
         private SerialPort _port;
 
         private Byte _terminator = 10;

@@ -1,0 +1,10 @@
+{
+    "name": "org.janelia.mouse-treadmill",
+    "displayName": "Janelia Mouse Treadmill Support",
+    "version": "0.1.0",
+    "unity": "2019.2",
+    "description": "Code to integrate the rodent ball tracking system.",
+    "keywords": ["VR"],
+    "dependencies": {
+    }
+}

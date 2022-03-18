@@ -30,9 +30,9 @@ namespace Janelia
 
         private int _numCameras = 4;
         private int _numEmptySides = 1;
-        private float _screenWidth = 95.0f;
-        private float _screenHeight = 182.0f;
-        private float _fractionalHeight = 0.3333f;
+        private float _screenWidth = 197.042f;
+        private float _screenHeight = 147.782f;
+        private float _fractionalHeight = 0.25f;
         private float _rotationY = 0;
         private float _offsetX = 0;
         private float _offsetZ = 0;
@@ -68,11 +68,11 @@ namespace Janelia
         {
             EditorGUILayout.BeginVertical();
 
-            _fly = (GameObject)EditorGUILayout.ObjectField("Fly", _fly, typeof(GameObject), true);
+            _mouse = (GameObject)EditorGUILayout.ObjectField("Mouse", _mouse, typeof(GameObject), true);
 
-            // A script listed here (without the ".cs" suffix) will be added to the created "fly" object,
+            // A script listed here (without the ".cs" suffix) will be added to the created "mouse" object,
             // as a convenience.
-            _flyComponentExtra = EditorGUILayout.TextField("Extra script for fly", _flyComponentExtra);
+            _mouseComponentExtra = EditorGUILayout.TextField("Extra script for mouse", _mouseComponentExtra);
 
             int numCamerasBefore = _numCameras;
             int numEmptySidesBefore = _numEmptySides;
@@ -85,7 +85,7 @@ namespace Janelia
 
             _rotationY = EditorGUILayout.FloatField("Rotation Y (deg)", _rotationY);
 
-            // The created "fly" object will be displaced from the center of the n-gon by this vector.
+            // The created "mouse" object will be displaced from the center of the n-gon by this vector.
             _offsetX = EditorGUILayout.FloatField("Offset X (mm)", _offsetX);
             _offsetZ = EditorGUILayout.FloatField("Offset Z (mm)", _offsetZ);
 
@@ -152,23 +152,23 @@ namespace Janelia
 
             // Create the objects if they are not specified.
 
-            if (_fly == null)
+            if (_mouse == null)
             {
-                _fly = new GameObject("Fly");
-                _fly.transform.localPosition = new Vector3(0, 0, 0);
+                _mouse = new GameObject("Mouse");
+                _mouse.transform.localPosition = new Vector3(0, 0, 0);
 
                 // For some reason, creating objects in this routine does not seem to
                 // mark the containing scene as dirty, so it is difficult to save the
                 // scene.  As a work-around, manually force the dirty marking.
-                SetObjectDirty(_fly);
+                SetObjectDirty(_mouse);
 
-                if ((_flyComponentExtra != null) && (_flyComponentExtra.Length > 0))
+                if ((_mouseComponentExtra != null) && (_mouseComponentExtra.Length > 0))
                 {
-                    string fullName = _flyComponentExtra + ",Assembly-CSharp";
+                    string fullName = _mouseComponentExtra + ",Assembly-CSharp";
                     Type t = Type.GetType(fullName);
                     if (t != null)
                     {
-                        _fly.AddComponent(t);
+                        _mouse.AddComponent(t);
                     }
                     else
                     {
@@ -181,7 +181,7 @@ namespace Janelia
             {
                 if (_cameraScreens[i].camera == null)
                 {
-                    GameObject cameraObj = new GameObject("FlyCamera" + (i + 1));
+                    GameObject cameraObj = new GameObject("MouseCamera" + (i + 1));
                     SetObjectDirty(cameraObj);
                     _cameraScreens[i].camera = cameraObj.AddComponent(typeof(Camera)) as Camera;
 
@@ -193,7 +193,7 @@ namespace Janelia
                 {
                     _cameraScreens[i].screen = GameObject.CreatePrimitive(PrimitiveType.Quad);
                     SetObjectDirty(_cameraScreens[i].screen);
-                    _cameraScreens[i].screen.name = "FlyCamera" + (i + 1) + "Screen";
+                    _cameraScreens[i].screen.name = "MouseCamera" + (i + 1) + "Screen";
                 }
                 _cameraScreens[i].screen.transform.localRotation = Quaternion.identity;
                 _cameraScreens[i].screen.transform.localPosition = Vector3.zero;
@@ -226,7 +226,7 @@ namespace Janelia
             for (int i = 0; i < _cameraScreens.Count; i++)
             {
                 Transform cameraXform = _cameraScreens[i].camera.gameObject.transform;
-                cameraXform.SetParent(_fly.transform);
+                cameraXform.SetParent(_mouse.transform);
 
                 Transform screenXform = _cameraScreens[i].screen.transform;
                 screenXform.SetParent(cameraXform);
@@ -255,7 +255,7 @@ namespace Janelia
 
         private void Save()
         {
-            _saved.flyName = PathName(_fly);
+            _saved.mouseName = PathName(_mouse);
             _saved.cameraNames.Clear();
             _saved.screenNames.Clear();
             foreach (CameraScreen cameraScreen in _cameraScreens)
@@ -284,7 +284,7 @@ namespace Janelia
             _saved = Resources.Load<CamerasNGonSaved>("Editor/savedCamerasNGon");
             if (_saved != null)
             {
-                _fly = GameObject.Find(_saved.flyName);
+                _mouse = GameObject.Find(_saved.mouseName);
                 if (_saved.cameraNames.Count == _saved.screenNames.Count)
                 {
                     _cameraScreens.Clear();

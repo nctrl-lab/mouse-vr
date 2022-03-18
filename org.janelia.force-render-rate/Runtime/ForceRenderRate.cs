@@ -13,7 +13,7 @@ namespace Janelia
 {
     public class ForceRenderRate : MonoBehaviour
     {
-        public float rateHz = 360.0f;
+        public float rateHz = 60.0f;
         private float _currentFrameTime;
 
         // For reporting the current frame rate, averaged to avoid excesses reporting overhead.
