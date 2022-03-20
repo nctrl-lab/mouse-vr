@@ -1,6 +1,7 @@
 ﻿// Include this script on gameObject to be controlled by Mouse Treadmill
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace Janelia
         [SerializeField] private bool enableKeyboard = false;
         [SerializeField] private float keyboardSpeed = 2.0f;
         [SerializeField] private float keyboardRotationSpeed = 60.0f;
+        public MouseTreadmillLog treadmillLog = new MouseTreadmillLog();
 
         private void Start()
         {
@@ -37,9 +39,17 @@ namespace Janelia
             _reader.yawScale = yawScale;
 
             // Read data and update
+            _prev_position = _position;
+            _prev_rotation = _rotation;
             _position = transform.position;
             _rotation = transform.eulerAngles;
-            _reader.Update(ref _position, ref _rotation);
+
+            treadmillLog.position = _position;
+            treadmillLog.speed = Vector3.Distance(_position, _prev_position) / Time.deltaTime;
+            treadmillLog.rotation = _rotation.y;
+
+            _reader.Update(ref _position, ref _rotation, ref treadmillLog);
+
 
             if (enableKeyboard)
             {
@@ -68,6 +78,24 @@ namespace Janelia
             // Update position
             transform.position = _position;
             transform.eulerAngles = _rotation;
+
+            // Log
+            if (logTreadmill)
+            {
+                Logger.Log(treadmillLog);
+            }
+
+            treadmillLog.events.Clear();
+        }
+
+        private void OnTriggerEnter(Collider other) // This comes before Update() method
+        {
+            Debug.Log(other.name);
+            string[] subnames = other.name.Trim('_').Split('_');
+            if (subnames.Length==2 && subnames[1].Contains('r'))
+            {
+                treadmillLog.events.Add(subnames[0]);
+            }
         }
 
         private void OnDisable()
@@ -84,7 +112,20 @@ namespace Janelia
             #endif
         }
 
-        [SerializeField] private Vector3 _position, _rotation;
+        public class MouseTreadmillLog : Logger.Entry
+        {
+            public UInt64 readTimestampMs;
+            public Vector3 position;
+            public float speed;
+            public float rotation;
+            public float ballSpeed;
+            public float pitch;
+            public float roll;
+            public float yaw;
+            public List<string> events = new List<string>();
+        }; 
+
+        private Vector3 _position, _prev_position, _rotation, _prev_rotation;
         private MouseTreadmillReader _reader;
     }
 }

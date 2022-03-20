@@ -21,6 +21,7 @@ namespace Janelia
         public bool enableKeyboard = false;
         public float keyboardSpeed = 2.0f;
         public float keyboardRotationSpeed = 60.0f;
+        public MouseTreadmillController.MouseTreadmillLog treadmillLog = new MouseTreadmillController.MouseTreadmillLog();
 
         public void Start()
         {
@@ -45,6 +46,7 @@ namespace Janelia
             _positionPrev = _position;
             _rotationPrev = _rotation;
 
+
             if (enableKeyboard)
             {
                 float forward = Input.GetAxis("Vertical") * Time.deltaTime;
@@ -60,7 +62,16 @@ namespace Janelia
                     _position.x += side * keyboardSpeed;
                 }
             } 
-            _reader.Update(ref _position, ref _rotation);
+            _reader.Update(ref _position, ref _rotation, ref treadmillLog);
+
+            treadmillLog.position = _position;
+            treadmillLog.speed = Vector3.Distance(_position, _positionPrev) / Time.deltaTime;
+            treadmillLog.rotation = _rotation.y;
+            if (logTreadmill)
+            {
+                Logger.Log(treadmillLog);
+            }
+            treadmillLog.events.Clear();
 
         }
 
@@ -114,5 +125,6 @@ namespace Janelia
             public float MouseTreadmill_yawScale;
         };
         private MouseTreadmillParametersLog _currentMouseTreadmillParametersLog = new MouseTreadmillParametersLog();
+
     }
 }
