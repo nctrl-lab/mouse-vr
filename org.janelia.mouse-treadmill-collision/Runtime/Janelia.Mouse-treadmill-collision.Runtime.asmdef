@@ -1,0 +1,13 @@
+{
+    "name": "Janelia.Mouse-treadmill-collision.Runtime",
+    "references": ["Janelia.Collision-handling.Runtime", "Janelia.Mouse-treadmill.Runtime", "Janelia.Logging.Runtime"],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

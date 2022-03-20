@@ -9,9 +9,9 @@ The device communicates to the host computer through USB ports using [FTDI D2XX 
 
 ## Installation
 
-Follow the [installation instructions in the main repository](https://github.com/JaneliaSciComp/janelia-unity-toolkit/blob/master/README.md#installation) to install this package and its dependency, [org.janelia.io](https://github.com/JaneliaSciComp/janelia-unity-toolkit/tree/master/org.janelia.io).  
+Follow the [installation instructions in the main repository](https://github.com/JaneliaSciComp/janelia-unity-toolkit/blob/master/README.md#installation) to install this package and its dependency, [org.janelia.io](https://github.com/JaneliaSciComp/janelia-unity-toolkit/tree/master/org.janelia.io) and [org.janelia.logging](https://github.com/JaneliaSciComp/janelia-unity-toolkit/tree/master/org.janelia.logging).  
 
 
 ## Calibration
 
-To use the output of the ball tracker in a Unity application, there must be a calibration scale to map the ball tracker's native measurements (the raw pixel displacements in the `JetTracParser.BallMessage` fields `x1`, `y1`, `x2`, `y2`) to Unity distance units.  By default, the code has a calibration scale that should be about right for a ball with 16-inch diameter and Unity units where 1 unit is 10 cm (0.1 m).  These Unity units seem to work better with jETTrac than the Unity default of 1 unit being 1 m.
+To use the output of the ball tracker in a Unity application, there must be a calibration scale to map the ball tracker's native measurements (the raw pixel displacements of `x0`, `y0`, `x1`, `y1`) to Unity distance units.  By default, the code has a calibration scale that should be about right for a ball with 16-inch diameter and Unity units where 1 unit is 10 cm (0.1 m).  

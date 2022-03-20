@@ -99,6 +99,7 @@ namespace Janelia
         // either too frequently or not frequently enough.  A heuristic is to write when
         // the subject is "still", that is, when the `IKinematicUpdater` has not given any
         // motion for a small number of frames.
+        public bool logPosition = false;
         public bool writeLogWhenStill = true;
         public int stillFrames = 5;
 
@@ -235,43 +236,46 @@ namespace Janelia
                 }
             }
 
-            if (addToLog)
+            if (logPosition)
             {
-                _currentTransformation.worldPosition = transform.position;
-                _currentTransformation.worldRotationDegs = transform.eulerAngles;
-                Logger.Log(_currentTransformation);
-            }
+                if (addToLog)
+                {
+                    _currentTransformation.worldPosition = transform.position;
+                    _currentTransformation.worldRotationDegs = transform.eulerAngles;
+                    Logger.Log(_currentTransformation);
+                }
 
-            _framesSinceLogWrite++;
-            bool writeLog = false;
-            if (writeLogWhenStill)
-            {
-                if ((_framesBeingStill >= stillFrames) && (_framesSinceLogWrite > minWriteInterval))
+                _framesSinceLogWrite++;
+                bool writeLog = false;
+                if (writeLogWhenStill)
+                {
+                    if ((_framesBeingStill >= stillFrames) && (_framesSinceLogWrite > minWriteInterval))
+                    {
+                        writeLog = true;
+                        if (debug)
+                        {
+                            Debug.Log("Frame " + Time.frameCount + ", writing log: still for " + _framesBeingStill + " frames, and " +
+                                _framesSinceLogWrite + " frames since last write");
+                        }
+                    }
+                }
+                if (_framesSinceLogWrite >= maxWriteInterval)
                 {
                     writeLog = true;
                     if (debug)
                     {
-                        Debug.Log("Frame " + Time.frameCount + ", writing log: still for " + _framesBeingStill + " frames, and " +
-                            _framesSinceLogWrite + " frames since last write");
+                        Debug.Log("Frame " + Time.frameCount + ", writing log: " + _framesSinceLogWrite + " frames since last write");
                     }
                 }
-            }
-            if (_framesSinceLogWrite >= maxWriteInterval)
-            {
-                writeLog = true;
-                if (debug)
+
+                LogUtilities.LogDeltaTime();
+
+                if (writeLog)
                 {
-                    Debug.Log("Frame " + Time.frameCount + ", writing log: " + _framesSinceLogWrite + " frames since last write");
+                    Logger.Write();
+                    _framesSinceLogWrite = 0;
+                    _framesBeingStill = 0;
                 }
-            }
-
-            LogUtilities.LogDeltaTime();
-
-            if (writeLog)
-            {
-                Logger.Write();
-                _framesSinceLogWrite = 0;
-                _framesBeingStill = 0;
             }
         }
 
