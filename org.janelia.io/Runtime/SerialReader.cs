@@ -92,6 +92,16 @@ namespace Janelia
             return _ringBuffer.Take(ref taken, ref timestampMs);
         }
 
+        public void Write(string s)
+        {
+            _port.Write(s);
+        }
+
+        public void Write(Byte[] b)
+        {
+            _port.Write(b, 0, b.Length);
+        }
+
         public void OnDisable()
         {
             if (debug)
