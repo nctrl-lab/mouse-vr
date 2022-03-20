@@ -15,8 +15,8 @@ namespace Janelia
 
     public class SetupCamerasNGon : EditorWindow
     {
-        private GameObject _fly;
-        private string _flyComponentExtra;
+        private GameObject _mouse;
+        private string _mouseComponentExtra;
 
         [Serializable]
         private class CameraScreen
@@ -28,12 +28,12 @@ namespace Janelia
 
         // The N in the N-gon is _numCameras + _numEmptySides.
 
-        private int _numCameras = 4;
+        private int _numCameras = 3;
         private int _numEmptySides = 1;
         private float _screenWidth = 197.042f;
         private float _screenHeight = 147.782f;
         private float _fractionalHeight = 0.25f;
-        private float _rotationY = 0;
+        private float _rotationY = -90f;
         private float _offsetX = 0;
         private float _offsetZ = 0;
         private float _near = 0.1f;

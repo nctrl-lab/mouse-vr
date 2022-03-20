@@ -8,7 +8,7 @@ namespace Janelia
     [Serializable]
     public class CamerasNGonSaved : ScriptableObject
     {
-        public string flyName;
+        public string mouseName;
         public List<string> cameraNames;
         public List<string> screenNames;
         public int numEmptySides;
