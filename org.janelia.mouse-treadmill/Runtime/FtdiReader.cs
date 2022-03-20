@@ -126,8 +126,6 @@ namespace Janelia
                         Debug.Log("FtdiReader.ThreadFunction: packet reading error");
                         _errorCount++;
                     }
-
-
                 }
                 else
                 {

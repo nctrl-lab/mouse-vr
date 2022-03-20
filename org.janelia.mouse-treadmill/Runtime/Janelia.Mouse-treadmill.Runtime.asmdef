@@ -1,6 +1,6 @@
 {
     "name": "Janelia.Mouse-treadmill.Runtime",
-    "references": ["Janelia.Io.Runtime"],
+    "references": ["Janelia.Io.Runtime","Janelia.Logging.Runtime"],
     "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": [],
