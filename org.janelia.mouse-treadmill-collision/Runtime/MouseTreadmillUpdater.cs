@@ -15,13 +15,15 @@ namespace Janelia
         public bool allowRotation = false;
         public bool reverseDirection = false;
         public bool logTreadmill = true;
-        public float rollScale = 0.00078f; // Calibration scale for roll (dm / pixel)
-        public float pitchScale = 0.00066f; // Calibration scale for pitch (dm / pixel)
+        public float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
+        public float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
         public float yawScale = 0.014f; // Calibaration scale for yaw (degree / pixel)
+        public float forwardMultiplier = 1f;
+        public float sideMultiplier = 1f;
         public bool enableKeyboard = false;
         public float keyboardSpeed = 2.0f;
-        public float keyboardRotationSpeed = 60.0f;
-        public MouseTreadmillController.MouseTreadmillLog treadmillLog = new MouseTreadmillController.MouseTreadmillLog();
+        public float keyboardRotationSpeed = 90.0f;
+        public MouseTreadmillReader.MouseTreadmillLog treadmillLog = new MouseTreadmillReader.MouseTreadmillLog();
 
         public void Start()
         {
@@ -30,12 +32,13 @@ namespace Janelia
             _reader.allowRotation = allowRotation;
             _reader.reverseDirection = reverseDirection;
             _reader.logTreadmill = logTreadmill;
-            _reader.rollScale = rollScale;
             _reader.pitchScale = pitchScale;
+            _reader.rollScale = rollScale;
             _reader.yawScale = yawScale;
+            _reader.forwardMultiplier = forwardMultiplier;
+            _reader.sideMultiplier = sideMultiplier;
+            _reader.LogParameters();
             _reader.Start();
-
-            LogParameters();
         }
 
         public void Update()
@@ -95,36 +98,7 @@ namespace Janelia
             _reader.OnDisable();
         }
 
-        private void LogParameters()
-        {
-            _currentMouseTreadmillParametersLog.MouseTreadmill_allowRotation = allowRotation;
-            _currentMouseTreadmillParametersLog.MouseTreadmill_reverseDirection = reverseDirection;
-            _currentMouseTreadmillParametersLog.MouseTreadmill_rollScale = rollScale;
-            _currentMouseTreadmillParametersLog.MouseTreadmill_pitchScale = pitchScale;
-            _currentMouseTreadmillParametersLog.MouseTreadmill_yawScale = yawScale;
-            Logger.Log(_currentMouseTreadmillParametersLog);
-        }
-
         private MouseTreadmillReader _reader;
-        private Vector3 _position;
-        private Vector3 _positionPrev;
-        private Vector3 _rotation;
-        private Vector3 _rotationPrev;
-        
-        // To make `Janelia.Logger.Log<T>()`'s call to JsonUtility.ToJson() work correctly,
-        // the `T` must be marked `[Serlializable]`, but its individual fields need not be
-        // marked `[SerializeField]`.  The individual fields must be `public`, though.
-
-        [Serializable]
-        private class MouseTreadmillParametersLog : Logger.Entry
-        {
-            public bool MouseTreadmill_allowRotation;
-            public bool MouseTreadmill_reverseDirection;
-            public float MouseTreadmill_rollScale;
-            public float MouseTreadmill_pitchScale;
-            public float MouseTreadmill_yawScale;
-        };
-        private MouseTreadmillParametersLog _currentMouseTreadmillParametersLog = new MouseTreadmillParametersLog();
-
+        private Vector3 _position, _positionPrev, _rotation, _rotationPrev;
     }
 }

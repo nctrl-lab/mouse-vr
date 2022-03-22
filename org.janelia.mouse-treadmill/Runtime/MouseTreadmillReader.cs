@@ -10,9 +10,11 @@ namespace Janelia
         public bool allowRotation = false;
         public bool reverseDirection = false;
         public bool logTreadmill = true;
-        public float rollScale = 0.0220f; // Calibration scale for roll (degree / pixel)
-        public float pitchScale = 0.0186f; // Calibration scale for pitch (degree / pixel)
-        public float yawScale = 0.014f; // Calibaration scale for yaw (degree / pixel)
+        public float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
+        public float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
+        public float yawScale = 0.112f; // Calibaration scale for yaw (degree / pixel)
+        public float forwardMultiplier = 1f;
+        public float sideMultiplier = 1f;
         public const float BALL_DIAMETER_INCH = 16f; // 16 inch = 40.64 cm
         public const float BALL_ARC_LENGTH_PER_DEGREE = BALL_DIAMETER_INCH * 0.254f * Mathf.PI / 360; // (0.035465 dm / degree)
 
@@ -22,7 +24,7 @@ namespace Janelia
             _ftdiReader.Start(); // This starts a thread that continously reads serial input
         }
 
-        public void Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillController.MouseTreadmillLog treadmillLog)
+        public void Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillLog treadmillLog)
         {
             // dx is right(+)-left(-). dz is forward(+)-back(-). dy is rotation angle (clockwise(+)-counterclockwise(-))
             UInt64 _readTimestampMs = 0;
@@ -53,8 +55,8 @@ namespace Janelia
                 rotationAngle.y += (allowRotation) ? yaw : 0f;
                 float cos = Mathf.Cos(rotationAngle.y * Mathf.Deg2Rad);
                 float sin = Mathf.Sin(rotationAngle.y * Mathf.Deg2Rad);
-                float forward = pitch * BALL_ARC_LENGTH_PER_DEGREE;
-                float side = roll * BALL_ARC_LENGTH_PER_DEGREE;
+                float forward = pitch * BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier;
+                float side = roll * BALL_ARC_LENGTH_PER_DEGREE * sideMultiplier;
                 position.z += forward * cos - side * sin;
                 position.x += forward * sin + side * cos;
 
@@ -81,6 +83,48 @@ namespace Janelia
         {
             _ftdiReader.OnDisable(); // Disconnect FTDI device
         }
+
+        public void LogParameters()
+        {
+            parameterLog.allowRotation = allowRotation;
+            parameterLog.reverseDirection = reverseDirection;
+            parameterLog.logTreadmill = logTreadmill;
+            parameterLog.rollScale = rollScale;
+            parameterLog.pitchScale = pitchScale;
+            parameterLog.yawScale = yawScale;
+            parameterLog.forwardMultiplier = forwardMultiplier;
+            parameterLog.sideMultiplier = sideMultiplier;
+            parameterLog.ballDiameterInch = BALL_DIAMETER_INCH;
+            parameterLog.ballArcLengthPerDegree = BALL_ARC_LENGTH_PER_DEGREE;
+            Logger.Log(parameterLog);
+        }
+
+        public class MouseTreadmillLog : Logger.Entry
+        {
+            public UInt64 readTimestampMs;
+            public Vector3 position;
+            public float speed;
+            public float rotation;
+            public float ballSpeed;
+            public float pitch;
+            public float roll;
+            public float yaw;
+            public List<string> events = new List<string>();
+        };
+
+        public class MouseTreadmillParameterLog : Logger.Entry
+        {
+            public bool allowRotation;
+            public bool reverseDirection;
+            public bool logTreadmill;
+            public float rollScale;
+            public float pitchScale;
+            public float yawScale;
+            public float forwardMultiplier = 1f;
+            public float sideMultiplier = 1f;
+            public float ballDiameterInch;
+            public float ballArcLengthPerDegree;
+        }; public MouseTreadmillParameterLog parameterLog = new MouseTreadmillParameterLog(); 
 
         private FtdiReader _ftdiReader;
         private Byte[] _ftdiReaderBuffer = new byte[FtdiReader.READ_SIZE_BYTES];

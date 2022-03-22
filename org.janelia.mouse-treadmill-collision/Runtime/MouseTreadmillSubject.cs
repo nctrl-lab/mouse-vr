@@ -16,16 +16,18 @@ namespace Janelia
         // Remember that default values here are overridden by the values saved in the Unity scene.
         // So the values here are used only when an object using this script is first created.
         // After that, changes must be made in the Unity editor's Inspector.
-        public bool allowMovement = true;
-        public bool allowRotation = false;
-        public bool reverseDirection = false;
-        public bool logTreadmill = true;
-        public float rollScale = 0.00078f; // Calibration scale for roll (dm / pixel)
-        public float pitchScale = 0.00066f; // Calibration scale for pitch (dm / pixel)
-        public float yawScale = 0.014f; // Calibaration scale for yaw (degree / pixel)
-        public bool enableKeyboard = false;
-        public float keyboardSpeed = 2.0f;
-        public float keyboardRotationSpeed = 60.0f;
+        [SerializeField] private bool allowMovement = true;
+        [SerializeField] private bool allowRotation = false;
+        [SerializeField] private bool reverseDirection = false;
+        [SerializeField] private bool logTreadmill = true;
+        [SerializeField] private float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
+        [SerializeField] private float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
+        [SerializeField] private float yawScale = 0.112f; // Calibaration scale for yaw (degree / pixel)
+        [SerializeField] private float forwardMultiplier = 1f;
+        [SerializeField] private float sideMultiplier = 1f;
+        [SerializeField] private bool enableKeyboard = false;
+        [SerializeField] private float keyboardSpeed = 2.0f;
+        [SerializeField] private float keyboardRotationSpeed = 90.0f;
 
         public new void Start()
         {
@@ -40,6 +42,7 @@ namespace Janelia
             _typedUpdater.enableKeyboard = enableKeyboard;
             _typedUpdater.keyboardSpeed = keyboardSpeed;
             _typedUpdater.keyboardRotationSpeed = keyboardRotationSpeed;
+            _typedUpdater.allowRotation = allowRotation;
 
             updater = _typedUpdater;
 
@@ -58,7 +61,6 @@ namespace Janelia
         public new void Update()
         {
             _typedUpdater.allowMovement = allowMovement;
-            _typedUpdater.allowRotation = allowRotation;
 
             if (Input.GetKey("q") || Input.GetKey(KeyCode.Escape))
             {
@@ -84,5 +86,6 @@ namespace Janelia
         }
 
         private MouseTreadmillUpdater _typedUpdater;
+        private Rigidbody _rigidbody;
     }
 }
