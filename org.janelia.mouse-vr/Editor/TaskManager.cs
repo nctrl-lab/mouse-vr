@@ -5,7 +5,7 @@ using UnityEditor;
 
 namespace Janelia
 {
-    public class SetupTask : EditorWindow
+    public class TaskManager : EditorWindow
     {
         // Task parameters
         string animalName = "";
@@ -20,8 +20,7 @@ namespace Janelia
         {
             if (window == null)
             {
-                window = GetWindow<SetupTask>("Task manager", true);
-                EditorUtility.SetDirty(window);
+                window = GetWindow<TaskManager>("Task manager", true);
             }
         }
 
@@ -30,28 +29,19 @@ namespace Janelia
             EditorGUILayout.BeginVertical();
 
             // Control buttons
+            GUILayout.Label("Configuration", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Setup"))
                 Setup();
             // Set multi screen
             if (GUILayout.Button("Set screen"))
                 FullScreenViewManager.ShowWindow();
-            if (GUILayout.Button("Ready"))
-                Ready();
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space(20);
-
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Start Task"))
-                Start();
-            if (GUILayout.Button("Stop Task"))
-                Stop();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(20);
 
             // Setup task parameters here
+            GUILayout.Label("Task parameters", EditorStyles.boldLabel);
             animalName = EditorGUILayout.TextField("Animal name", animalName);
             taskType = EditorGUILayout.TextField("Task type", taskType);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
@@ -59,6 +49,17 @@ namespace Janelia
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Notes", GUILayout.MaxWidth(40));
             notes = EditorGUILayout.TextArea(notes, GUILayout.Height(40));
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(20);
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Ready"))
+                Ready();
+            if (GUILayout.Button("Start"))
+                Start();
+            if (GUILayout.Button("Stop"))
+                Stop();
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.EndVertical();
@@ -121,10 +122,14 @@ namespace Janelia
             mainLight.transform.localRotation = Quaternion.Euler(90, 0, 0);
             mainLight.transform.localScale = new Vector3(1, 1, 1);
 
+            // Lighting setting to dark
+            Material material = new Material(Shader.Find("Standard"));
+            RenderSettings.skybox = material;
+
+
             Light light = mainLight.GetComponent<Light>();
             if (light == null)
                 light = mainLight.AddComponent<Light>();
-            light.intensity = 0; // turn off light at the beginning
             light.type = LightType.Point;
             light.color = Color.white;
             light.range = 200;
@@ -177,7 +182,7 @@ namespace Janelia
 
         GameObject player, environment, mainCamera, mainLight;
 
-        private static SetupTask window;
+        private static TaskManager window;
         TaskController taskController;
         PlayerController playerController;
         ForceRenderRate forceRenderRate;
