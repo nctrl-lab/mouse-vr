@@ -1,0 +1,14 @@
+{
+    "name": "Janelia.Mouse-vr",
+    "rootNamespace": "",
+    "references": ["Janelia.Force-render-rate.Runtime", "Janelia.Full-screen-view.Editor", "Janelia.Setup-cameras-n-gon.Editor", "Janelia.Mouse-vr.Runtime"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
