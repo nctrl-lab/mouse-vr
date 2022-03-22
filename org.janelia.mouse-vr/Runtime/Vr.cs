@@ -52,14 +52,14 @@ namespace Janelia
         {
             Light[] lights = GameObject.FindObjectsOfType<Light>();
             foreach (Light light in lights)
-                light.intensity = (state) ? 0 : 1;
+                light.enabled = !state;
         }
 
         public static void BlankDisplay()
         {
             Light[] lights = GameObject.FindObjectsOfType<Light>();
             foreach (Light light in lights)
-                light.intensity = (light.intensity>0) ? 0 : 1;
+                light.enabled = !light.enabled;
         }
 
         public static void Connect(bool state)
