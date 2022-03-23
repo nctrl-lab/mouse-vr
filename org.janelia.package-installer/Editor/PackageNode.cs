@@ -94,6 +94,11 @@ namespace Janelia
                     foreach (string reference in asmdef.references)
                     {
                         int i = reference.LastIndexOf(".");
+                        if (i == -1)
+                        {
+                            Debug.Log(reference + " is not a part of the current packages");
+                            continue;
+                        }
                         string referencePkg = reference.Substring(0, i).ToLower();
                         string referencePkgDir = rootDir + Path.DirectorySeparatorChar + "org." + referencePkg;
                         result.Add(referencePkgDir);
