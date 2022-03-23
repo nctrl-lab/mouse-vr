@@ -14,7 +14,7 @@ namespace Janelia
         public bool allowRotationRoll = false; // allow rotation by roll
         public float maxRotationSpeed = 120.0f; // 120 degree per second
         public bool followPath = false;
-        public float pathRotationMix = 0.5f;
+        public float pathRotationMix = 0.25f;
         public PathCreation.PathCreator pathCreator;
         public bool reverseDirection = false;
         public bool logTreadmill = true;
@@ -143,21 +143,16 @@ namespace Janelia
             {
                 _rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
                 if (allowRotationYaw || allowRotationRoll)
-                    transform.Rotate(_rotation);
+                    transform.Rotate(_rotation - _rotationPrev);
             }
             else
             {
-                // You don't have to worry about collision!!!
-                // Moved distance is determined by dot product of current angle and tangent of path
-                Vector3 pathDirection = pathCreator.path.GetDirection(pathCreator.path.GetClosestTimeOnPath(_positionPrev));
-                _deltaDistance = Vector3.Dot(_position - _positionPrev, pathDirection - _positionPrev) / Vector3.Distance(pathDirection, _positionPrev);
-                _distance += _deltaDistance;
+                float pathRotation = pathCreator.path.GetRotationAtDistance(_distance).eulerAngles.y;
+                _rotation.y = pathRotation * pathRotationMix + _rotation.y * (1 - pathRotationMix);
+                transform.Rotate(_rotation - _rotationPrev);
+
+                _distance += treadmillLog.pitch * MouseTreadmillReader.BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier * Mathf.Cos(_rotation.y - _rotationPrev.y);
                 transform.position = pathCreator.path.GetPointAtDistance(_distance);
-                
-                // Angle
-                Vector3 pathRotation = pathCreator.path.GetRotationAtDistance(_distance).eulerAngles;
-                _rotation = pathRotation * pathRotationMix + _rotation * (1 - pathRotationMix);
-                transform.Rotate(_rotation);
             }
 
             // Log

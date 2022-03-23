@@ -8,12 +8,21 @@ namespace Janelia
     public class TaskManager : EditorWindow
     {
         // Task parameters
-        string animalName = "";
-        string taskType = "";
-        int nTrial = 100;
-        int rewardAmountUl = 10;
-        string notes = "";
-        int iState, iTrial, iCue, iCorrect, iWrong, iReward, nReward;
+        string animalName = "", taskType = "", notes = "";
+        int nTrial = 100, rewardAmountUl = 10;
+        bool allowRotationYaw = false;
+        bool allowRotationRoll = false;
+        bool followPath = false;
+        bool reverseDirection = false;
+        bool logTreadmill = true;
+        float maxRotationSpeed = 120.0f;
+        float pathRotationMix = 0.2f;
+        float pitchScale = 0.144f;
+        float rollScale = 0.170f;
+        float yawScale = 0.112f;
+        float forwardMultiplier = 1f;
+        float sideMultiplier = 1f;
+
 
         [MenuItem("Window/MouseVR")]
         public static void ShowWindow()
@@ -46,11 +55,29 @@ namespace Janelia
             taskType = EditorGUILayout.TextField("Task type", taskType);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
+
+            EditorGUILayout.Space(10);
+
             EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("Notes", GUILayout.MaxWidth(40));
+            GUILayout.Label("Notes", GUILayout.MaxWidth(80));
             notes = EditorGUILayout.TextArea(notes, GUILayout.Height(40));
             EditorGUILayout.EndHorizontal();
 
+            EditorGUILayout.Space(20);
+
+            GUILayout.Label("Ball parameters", EditorStyles.boldLabel);
+            followPath = EditorGUILayout.Toggle("Follow path", followPath);
+            allowRotationRoll = EditorGUILayout.Toggle("Allow rotation by roll", allowRotationRoll);
+            allowRotationYaw = EditorGUILayout.Toggle("Allow rotation by yaw", allowRotationYaw);
+            maxRotationSpeed = EditorGUILayout.FloatField("Max rotation speed (degree/s)", maxRotationSpeed);
+            pathRotationMix = EditorGUILayout.FloatField("Ratio btw auto and manual rotation", pathRotationMix);
+            logTreadmill = EditorGUILayout.Toggle("Log treadmill", logTreadmill);
+            pitchScale = EditorGUILayout.FloatField("Pitch scale (degree/pixel)", pitchScale);
+            rollScale = EditorGUILayout.FloatField("Roll scale (degree/pixel)", rollScale);
+            yawScale = EditorGUILayout.FloatField("Yaw scale (degree/pixel)", yawScale);
+            forwardMultiplier = EditorGUILayout.FloatField("Forward multiplier", forwardMultiplier);
+            sideMultiplier = EditorGUILayout.FloatField("Side multiplier", sideMultiplier);
+            
             EditorGUILayout.Space(20);
 
             EditorGUILayout.BeginHorizontal();
@@ -79,6 +106,7 @@ namespace Janelia
             }
             player.transform.localPosition = new Vector3(0, 0.2f, 0);
             player.transform.localScale = new Vector3(0.3f, 0.1f, 0.3f);
+            EditorUtility.SetDirty(player);
 
             forceRenderRate = player.GetComponent<ForceRenderRate>();
             if (forceRenderRate == null)
@@ -154,13 +182,26 @@ namespace Janelia
 
         private void Ready()
         {
+            player = GameObject.Find("Player");
+
             taskController = player.GetComponent<TaskController>();
-            if (taskController == null)
-                taskController = player.AddComponent<TaskController>();
             taskController.animalName = animalName;
             taskController.task = taskType;
             taskController.nTrial = nTrial;
             taskController.note = notes;
+
+            playerController = player.GetComponent<PlayerController>();
+            playerController.allowRotationYaw = allowRotationYaw;
+            playerController.allowRotationRoll = allowRotationRoll;
+            playerController.maxRotationSpeed = maxRotationSpeed;
+            playerController.pathRotationMix = pathRotationMix;
+            playerController.followPath = followPath;
+            playerController.logTreadmill = logTreadmill;
+            playerController.pitchScale = pitchScale;
+            playerController.rollScale = rollScale;
+            playerController.yawScale = yawScale;
+            playerController.forwardMultiplier = forwardMultiplier;
+            playerController.sideMultiplier = sideMultiplier;
 
             // Start application
             UnityEditor.EditorApplication.isPlaying = true;

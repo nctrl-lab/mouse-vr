@@ -71,7 +71,10 @@ namespace Janelia
                 {
                     // rotation is governed by roll
                     // side speed (dm / s) is clipped by sigmoid function
-                    rotationAngle.y += maxRotationSpeed * (2 / (1 + Mathf.Exp(-side / Time.deltaTime)) - 1);
+                    float deltaRotation = maxRotationSpeed * (2 / (1 + Mathf.Exp(-side / Time.deltaTime)) - 1) * Time.deltaTime;
+                    if (Mathf.Abs(deltaRotation) < 0.1f)
+                        deltaRotation = 0;
+                    rotationAngle.y += deltaRotation;
                 }
 
                 // Log
