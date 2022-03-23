@@ -1,7 +1,11 @@
 {
     "name": "Janelia.Mouse-vr.Runtime",
     "rootNamespace": "",
-    "references": ["Janelia.Mouse-treadmill.Runtime","Janelia.Logging.Runtime"],
+    "references": [
+        "Janelia.Mouse-treadmill.Runtime",
+        "Janelia.Logging.Runtime",
+        "PathCreator"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

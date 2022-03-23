@@ -14,7 +14,7 @@ namespace Janelia
         public bool allowRotationRoll = false; // allow rotation by roll
         public float maxRotationSpeed = 120.0f; // 120 degree per second
         public bool followPath = false;
-        public float pathRotationMix = 0.5;
+        public float pathRotationMix = 0.5f;
         public PathCreation.PathCreator pathCreator;
         public bool reverseDirection = false;
         public bool logTreadmill = true;
@@ -152,12 +152,12 @@ namespace Janelia
                 Vector3 pathDirection = pathCreator.path.GetDirection(pathCreator.path.GetClosestTimeOnPath(_positionPrev));
                 _deltaDistance = Vector3.Dot(_position - _positionPrev, pathDirection - _positionPrev) / Vector3.Distance(pathDirection, _positionPrev);
                 _distance += _deltaDistance;
-                transform.position = pathCreator.path.GetPositionAtDistance(_distance);
+                transform.position = pathCreator.path.GetPointAtDistance(_distance);
                 
                 // Angle
-                Vector3 pathRotation = pathCreator.path.GetRotationAtDistance(_distance).Euler;
+                Vector3 pathRotation = pathCreator.path.GetRotationAtDistance(_distance).eulerAngles;
                 _rotation = pathRotation * pathRotationMix + _rotation * (1 - pathRotationMix);
-                tranform.Rotate(_rotation);
+                transform.Rotate(_rotation);
             }
 
             // Log
