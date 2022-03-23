@@ -7,7 +7,10 @@ namespace Janelia
     public class MouseTreadmillReader
     {
         public bool allowMovement = true; // Move actor only when this is true
-        public bool allowRotation = false;
+        public bool allowRotationYaw = false;
+        public bool allowRotationRoll = false; // Rotation by roll instead of yaw
+        public float maxRotationSpeed = 120.0f;
+        public bool followPath = false;
         public bool reverseDirection = false;
         public bool logTreadmill = true;
         public float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
@@ -51,14 +54,25 @@ namespace Janelia
                 float pitch = _dz * pitchScale;
                 float roll = _dx * rollScale;
                 float yaw = _dy * yawScale;
-
-                rotationAngle.y += (allowRotation) ? yaw : 0f;
                 float cos = Mathf.Cos(rotationAngle.y * Mathf.Deg2Rad);
                 float sin = Mathf.Sin(rotationAngle.y * Mathf.Deg2Rad);
                 float forward = pitch * BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier;
                 float side = roll * BALL_ARC_LENGTH_PER_DEGREE * sideMultiplier;
                 position.z += forward * cos - side * sin;
                 position.x += forward * sin + side * cos;
+
+                // Both yaw and roll can affect rotation
+                if (allowRotationYaw)
+                {
+                    rotationAngle.y += yaw;
+                }
+
+                if (followPath || allowRotationRoll)
+                {
+                    // rotation is governed by roll
+                    // side speed (dm / s) is clipped by sigmoid function
+                    rotationAngle.y += maxRotationSpeed * (2 / (1 + Mathf.Exp(-side / Time.deltaTime)) - 1);
+                }
 
                 // Log
                 treadmillLog.readTimestampMs = _readTimestampMs;
@@ -86,7 +100,10 @@ namespace Janelia
 
         public void LogParameters()
         {
-            parameterLog.allowRotation = allowRotation;
+            parameterLog.allowRotationYaw = allowRotationYaw;
+            parameterLog.allowRotationRoll = allowRotationRoll;
+            parameterLog.maxRotationSpeed = maxRotationSpeed;
+            parameterLog.followPath = followPath;
             parameterLog.reverseDirection = reverseDirection;
             parameterLog.logTreadmill = logTreadmill;
             parameterLog.rollScale = rollScale;
@@ -109,12 +126,16 @@ namespace Janelia
             public float pitch;
             public float roll;
             public float yaw;
+            public float distance;
             public List<string> events = new List<string>();
         };
 
         public class MouseTreadmillParameterLog : Logger.Entry
         {
-            public bool allowRotation;
+            public bool allowRotationYaw;
+            public bool allowRotationRoll;
+            public float maxRotationSpeed;
+            public bool followPath;
             public bool reverseDirection;
             public bool logTreadmill;
             public float rollScale;

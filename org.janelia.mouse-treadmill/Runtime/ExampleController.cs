@@ -10,7 +10,9 @@ namespace Janelia
     public class ExampleController : MonoBehaviour
     {    
         [SerializeField] private bool allowMovement = true;
-        [SerializeField] private bool allowRotation = false;
+        [SerializeField] private bool allowRotationYaw = false;
+        [SerializeField] private bool allowRotationRoll = false;
+        [SerializeField] private float maxRotationSpeed = 120.0f; // 120 degree per second
         [SerializeField] private bool reverseDirection = false;
         [SerializeField] private bool logTreadmill = true;
         [SerializeField] private float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
@@ -36,7 +38,7 @@ namespace Janelia
             _rigidbody.constraints |= RigidbodyConstraints.FreezePositionY;
             _rigidbody.constraints |= RigidbodyConstraints.FreezeRotationX;
             _rigidbody.constraints |= RigidbodyConstraints.FreezeRotationZ;
-            if (!allowRotation)
+            if (!(allowRotationYaw || allowRotationRoll))
             {
                 _rigidbody.constraints |= RigidbodyConstraints.FreezeRotationY;
             }
@@ -54,7 +56,9 @@ namespace Janelia
         {
             _reader = new MouseTreadmillReader();
             _reader.allowMovement = allowMovement;
-            _reader.allowRotation = allowRotation;
+            _reader.allowRotationYaw = allowRotationYaw;
+            _reader.allowRotationRoll = allowRotationRoll;
+            _reader.maxRotationSpeed = maxRotationSpeed;
             _reader.reverseDirection = reverseDirection;
             _reader.logTreadmill = logTreadmill;
             _reader.pitchScale = pitchScale;
@@ -83,10 +87,12 @@ namespace Janelia
             _rotationPrev = _rotation;
             _position = transform.position; // T-1
             _rotation = transform.eulerAngles;
+            _deltaDistance = Vector3.Distance(_position, _positionPrev); // T-1 - T-2
 
             treadmillLog.position = _position; // T-1
             treadmillLog.rotation = _rotation.y;
-            treadmillLog.speed = Vector3.Distance(_position, _positionPrev) / Time.deltaTime;
+            treadmillLog.distance += _deltaDistance;
+            treadmillLog.speed = _deltaDistance / Time.deltaTime;
 
             _positionPrev = _position; // T-1
             _rotationPrev = _rotation;
@@ -98,7 +104,7 @@ namespace Janelia
                 float sin = Mathf.Sin(_rotation.y * Mathf.Deg2Rad);
                 float forward = Input.GetAxis("Vertical") * Time.deltaTime;
                 float side = Input.GetAxis("Horizontal") * Time.deltaTime;
-                if (allowRotation)
+                if (allowRotationYaw || allowRotationRoll)
                 {
                     _position.z += forward * cos * keyboardSpeed;
                     _position.x += forward * sin * keyboardSpeed;
@@ -120,7 +126,7 @@ namespace Janelia
             //transform.Translate(_position - _positionPrev); // definitely ignores...
             //_rigidbody.MovePosition(_position); // ignores physics
             _rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
-            if (allowRotation)
+            if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation);
 
             // Log
@@ -156,6 +162,7 @@ namespace Janelia
         }
 
         private Vector3 _position, _positionPrev, _rotation, _rotationPrev;
+        private float _distance, _deltaDistance;
         private Rigidbody _rigidbody;
         private Collider _collider;
         private MouseTreadmillReader _reader;
