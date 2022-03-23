@@ -1,4 +1,5 @@
 using System;
+using System.IO.Ports;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,6 +15,8 @@ namespace Janelia
         public int nTrial, iTrial, iCorrect, iReward, rewardAmountUl;
         public States iState;
         public Choices iTarget, iChoice;
+        public string comPort = "COM5";
+        public SerialPort serial;
         public enum States
         {
             Choice = 0,
@@ -29,6 +32,19 @@ namespace Janelia
 
         private void Start()
         {
+            serial = new SerialPort(comPort, 115200);
+            try
+            {
+                serial.Open();
+                if (serial.IsOpen)
+                {
+                    _isOpen = true;
+                }
+            }
+            catch
+            {
+                Debug.Log(comPort + " is not available");
+            }
             LogParameter();
             Reset();
 
@@ -59,6 +75,7 @@ namespace Janelia
                     {
                         iCorrect++;
                         iReward += rewardAmountUl;
+                        Reward();
                     }
                     LogTrial();
                 }
@@ -82,6 +99,14 @@ namespace Janelia
             }
         }
 
+        private void OnDisable()
+        {
+            if (_isOpen)
+            {
+                serial.Close();
+            }
+        }
+
         private void Quit()
         {
             UnityEditor.EditorApplication.isPlaying = false;
@@ -96,6 +121,14 @@ namespace Janelia
             iChoice = Choices.None;
             iReward = 0;
             note = "";
+        }
+
+        public void Reward()
+        {
+            if (_isOpen)
+            {
+                serial.Write("r");
+            }
         }
 
         private void LogTrial()
@@ -147,5 +180,7 @@ namespace Janelia
             public int rewardAmountUl; // reward amount per trial
             public string note;
         }; private TaskParametersLog taskParametersLog = new TaskParametersLog();
+
+        private bool _isOpen = false;
     }
 }

@@ -9,6 +9,7 @@ namespace Janelia
     {
         // Task parameters
         string animalName = "", taskType = "", notes = "";
+        string comPort = "COM5";
         int nTrial = 100, rewardAmountUl = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
@@ -55,6 +56,7 @@ namespace Janelia
             taskType = EditorGUILayout.TextField("Task type", taskType);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
+            comPort = EditorGUILayout.TextField("COM Port", comPort);
 
             EditorGUILayout.Space(10);
 
@@ -189,6 +191,7 @@ namespace Janelia
             taskController.task = taskType;
             taskController.nTrial = nTrial;
             taskController.note = notes;
+            taskController.comPort = comPort;
 
             playerController = player.GetComponent<PlayerController>();
             playerController.allowRotationYaw = allowRotationYaw;
