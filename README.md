@@ -10,7 +10,7 @@ This branch is forked from [janelia-unity-toolkit](https://github.com/JaneliaSci
 2. Install Unity 2020.3 LTS from Unity Hub
 3. Download [this github](https://github.com/lapis42/mouse-vr)
 4. Install [org.janelia.package-installer](https://github.com/lapis42/mouse-vr/tree/master/org.janelia.package-installer) package
-5. Install [org.janelia.mouse-vr](https://github.com/lapis42/mouse-vr/tree/master/org.janelia.mouse-vr)
+5. Install [org.janelia.mouse-vr](https://github.com/lapis42/mouse-vr/tree/master/org.janelia.mouse-vr) using "Window > Install Package and Dependencies" package
 6. Install [Bezier Path Creator](https://assetstore.unity.com/packages/tools/utilities/b-zier-path-creator-136082) from Asset Store
 7. Run "mouse-vr" package from the Unity editor's "Window" menu
 
