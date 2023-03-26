@@ -4,6 +4,75 @@ using UnityEngine;
 
 using FTD2XX_NET;
 
+
+/*
+
+The system communicates using the FTDI D2xx Driver library.
+The manual says Virtual COM protocol can result defective communication.
+Baudrate: 1250000 bits per second
+
+Command:
+  - [252 0]: dump internal register
+      - This command returns 50 bytes read from registers in each camera
+  - [254 0]: stop motion data
+  - [255 0]: start motion data
+      - This command initiates the 4kHz motion data from the cameras.
+      - Each sample is 12 bytes.
+
+Packet design (12 bytes/packet):
+  - 1: zero
+  - 2: a counter from 1 to 255
+
+  - 3: delta_x from camera 0 - zero centered on 128
+  - 4: delta_y from camera 0 - zero centered on 128
+  - 5: delta_x from camera 1 - zero centered on 128
+  - 6: delta_y from camera 1 - zero centered on 128
+
+  - 7: surface quality from camera 0 (higher the better / worst is 1)
+  - 8: surface quality from camera 1
+
+  - 9: high byte of shutter speed, camera 0
+  - 10: low byte of shutter speed, camera 0
+  - 11: high byte of shutter speed, camera 1
+  - 12: low byte of shutter speed, camera 1
+       --> shutterSpeed = ((HighByte -1)*256+lowByte) / 24MHz
+
+Packet speed: 4000 packets / second
+Ftdi is checked at 400 Hz
+
+```cs
+// example code
+ser = SerialPort("COM3", 1250000);
+ser.Open();
+ser.Write(new byte[] {255, 0}, 0, 2); // this starts streaming
+ser.Read(buffer, 0, read_n_byte); // read data
+processData(buffer); // custom function that processes data
+ser.Write(new byte[] {254, 0}, 0, 2); // this end streaming
+ser.Close();
+```
+
+- Pseudocode for FtdiReader
+```python
+class FtdiReader:
+    def Start(deviceIndex = 0)
+    def Take(packets)
+    def Clear()
+    def OnDisable() # stops thread and close FTDI connection
+```
+
+* This uses org.janelia.io/Runtime/RingBuffer.cs RingBuffer class to store packets
+
+- Pseudocode for RingBuffer
+```python
+class RingBuffer:
+    def __init__(itemCount=400, itemSize=12*10)
+    def Give(packets) # save 120 bytes
+    def Take(packets) # take 120 bytes
+    def Clear() # clear buffer
+```
+
+*/
+
 namespace Janelia
 {
     public class FtdiReader
@@ -55,7 +124,7 @@ namespace Janelia
             ftStatus = ftdi.SetBaudRate(1250000);
             ftStatus = ftdi.SetTimeouts(1000, 1000); // 1s timeout for read and write
 
-            SetStreaming(ftdi, 1);
+            SetStreaming(ftdi, 1); // This sends a serial command to start streaming
 
             _thread = new Thread(ThreadFunction);
             _thread.Start();
@@ -79,7 +148,7 @@ namespace Janelia
             _stopThread = true;
             if (ftdi.IsOpen)
             {
-                SetStreaming(ftdi, 0);
+                SetStreaming(ftdi, 0); // This tells to stop streaming
                 ftStatus = ftdi.Close();
                 if (ftStatus == FTDI.FT_STATUS.FT_OK)
                 {
@@ -143,6 +212,8 @@ namespace Janelia
             return;
         }
 
+        // SetStreaming(ftdi, 1) will start streaming
+        // SetStreaming(ftdi, 0) will stop streaming
         private void SetStreaming(FTDI ftdi, int status)
         {
             UInt32 numBytesWritten = 0;
