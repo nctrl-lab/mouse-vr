@@ -123,6 +123,7 @@ namespace Janelia
             // Set up device data parameters
             ftStatus = ftdi.SetBaudRate(1250000);
             ftStatus = ftdi.SetTimeouts(1000, 1000); // 1s timeout for read and write
+            ftStatus = ftdi.SetLatency(0);
 
             SetStreaming(ftdi, 1); // This sends a serial command to start streaming
 
