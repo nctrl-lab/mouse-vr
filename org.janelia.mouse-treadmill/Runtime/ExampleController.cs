@@ -13,7 +13,7 @@ namespace Janelia
         [SerializeField] private bool allowRotationYaw = false;
         [SerializeField] private bool allowRotationRoll = false;
         [SerializeField] private float maxRotationSpeed = 120.0f; // 120 degree per second
-        [SerializeField] private bool reverseDirection = false;
+        [SerializeField] private bool reverseDirection = true; // true if the ball camera is 180 degree rotated
         [SerializeField] private bool logTreadmill = true;
         [SerializeField] private float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
         [SerializeField] private float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
@@ -147,6 +147,7 @@ namespace Janelia
                 treadmillLog.events.Add(subnames[0]);
             }
         }
+
         private void OnDisable()
         {
             _reader.OnDisable();

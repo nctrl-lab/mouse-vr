@@ -156,7 +156,6 @@ namespace Janelia
             Material material = new Material(Shader.Find("Standard"));
             RenderSettings.skybox = material;
 
-
             Light light = mainLight.GetComponent<Light>();
             if (light == null)
                 light = mainLight.AddComponent<Light>();

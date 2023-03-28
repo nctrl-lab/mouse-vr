@@ -35,29 +35,30 @@ namespace Janelia
             while (GetNextMessage(ref _message)) // Reads till there's no remaining buffer
             {
                 _readTimestampMs = _message.readTimestampMs;
-                _dx = _message.y0 - _message.y1;
-                _dz = _message.y0 + _message.y1;
-                _dy = _message.x0 + _message.x1; // Unity has a left-handed coordinate system.
+                _dx += _message.y0 - _message.y1;
+                _dz += _message.y0 + _message.y1;
+                _dy += _message.x0 + _message.x1; // Unity has a left-handed coordinate system.
             }
 
             // Translation and rotation logic comes here
+            if (reverseDirection)
+            {
+                _dx = -_dx;
+                _dy = -_dy;
+                _dz = -_dz;
+            }
+
+            // Calculate future position and rotation
+            float pitch = _dz * pitchScale;
+            float roll = _dx * rollScale;
+            float yaw = _dy * yawScale;
+            float forward = pitch * BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier;
+            float side = roll * BALL_ARC_LENGTH_PER_DEGREE * sideMultiplier;
+
             if (allowMovement)
             {
-                if (reverseDirection)
-                {
-                    _dx = -_dx;
-                    _dy = -_dy;
-                    _dz = -_dz;
-                }
-
-                // Calculate future position and rotation
-                float pitch = _dz * pitchScale;
-                float roll = _dx * rollScale;
-                float yaw = _dy * yawScale;
                 float cos = Mathf.Cos(rotationAngle.y * Mathf.Deg2Rad);
                 float sin = Mathf.Sin(rotationAngle.y * Mathf.Deg2Rad);
-                float forward = pitch * BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier;
-                float side = roll * BALL_ARC_LENGTH_PER_DEGREE * sideMultiplier;
                 position.z += forward * cos - side * sin;
                 position.x += forward * sin + side * cos;
 
@@ -76,14 +77,14 @@ namespace Janelia
                         deltaRotation = 0;
                     rotationAngle.y += deltaRotation;
                 }
-
-                // Log
-                treadmillLog.readTimestampMs = _readTimestampMs;
-                treadmillLog.ballSpeed = Mathf.Sqrt(Mathf.Pow(forward, 2) + Mathf.Pow(side, 2)) / Time.deltaTime;
-                treadmillLog.pitch = pitch;
-                treadmillLog.roll = roll;
-                treadmillLog.yaw = yaw;
             }
+
+            // Log
+            treadmillLog.readTimestampMs = _readTimestampMs;
+            treadmillLog.ballSpeed = Mathf.Sqrt(Mathf.Pow(forward, 2) + Mathf.Pow(side, 2)) / Time.deltaTime;
+            treadmillLog.pitch = pitch;
+            treadmillLog.roll = roll;
+            treadmillLog.yaw = yaw;
         }
 
         public bool GetNextMessage(ref MouseTreadmillParser.Message _message)

@@ -16,8 +16,8 @@ namespace Janelia
         public bool followPath = false;
         public float pathRotationMix = 0.25f;
         public PathCreation.PathCreator pathCreator;
-        public bool reverseDirection = false;
-        public bool logTreadmill = true;
+        public bool reverseDirection = true; // true if the camera is rotated at 180 degrees
+        public bool logTreadmill = true; // save log of player position and velocity
         public float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
         public float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
         public float yawScale = 0.112f; // Calibaration scale for yaw (degree / pixel)
