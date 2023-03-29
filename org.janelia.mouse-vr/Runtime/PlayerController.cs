@@ -82,6 +82,8 @@ namespace Janelia
             _reader.sideMultiplier = sideMultiplier;
             _reader.LogParameters(); // remember to log parameters every time you change
             _reader.Start();
+
+            // TODO: start Socket input / output here
         }
 
         private void Update()
@@ -159,6 +161,7 @@ namespace Janelia
             if (logTreadmill)
             {
                 Logger.Log(treadmillLog);
+                // TODO: Socket output log should be done here
             }
             treadmillLog.events.Clear();
         }

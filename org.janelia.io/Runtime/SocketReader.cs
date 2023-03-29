@@ -14,16 +14,18 @@ namespace Janelia
     {
         // Supports UDP (the default) or TCP.
         public readonly bool usingUDP;
+        public readonly bool usingTCPServer;
         public bool debug = true;
 
         // Setting this flag to `true` will reduce performance.,
         public bool debugSlowly = false;
 
         // Only TCP needs `connectRetryMs`.
-        public SocketReader(string hostname = "127.0.0.1", int port = 2000, int bufferSizeBytes = 1024, int readBufferCount = 240, bool useUDP = true, int connectRetryMs = 5000)
+        public SocketReader(string hostname = "127.0.0.1", int port = 22224, int bufferSizeBytes = 1024, int readBufferCount = 240, bool useTCPServer = true, bool useUDP = false, int connectRetryMs = 5000)
         {
-            usingUDP = useUDP;
-            _hostname = hostname;
+            usingTCPServer = useTCPServer;
+            usingUDP = useTCPServer ? false : useUDP;
+            _hostname = useTCPServer ? "127.0.0.1" : hostname;
             _port = port;
             _connectRetryMs = connectRetryMs;
             _bufferSizeBytes = bufferSizeBytes;
@@ -41,6 +43,11 @@ namespace Janelia
         {
             if (debug)
                 Debug.Log(Now() + "SocketReader.Start() creating socket thread");
+
+            if (usingTCPServer) {
+                _server = new TcpListener(IPAddress.Loopback, _port);
+                _server.Start();
+            }
 
             _thread = usingUDP ?
                 new System.Threading.Thread(ThreadFunctionUDP) { IsBackground = true } :
@@ -115,6 +122,18 @@ namespace Janelia
 
                 _thread.Abort();
                 _thread = null;
+
+                if (_clientSocket != null)
+                {
+                    _clientSocket.Close();
+                    _clientSocket = null;
+                }
+
+                if (_serverSocket != null)
+                {
+                    _serverSocket.Close();
+                    _serverSocket = null;
+                }
             }
 
             if (_writeThread != null)
@@ -195,10 +214,19 @@ namespace Janelia
             {
                 try
                 {
-                    if (debug)
-                        Debug.Log(Now() + "SocketReader trying to connect to server '" + _hostname + "' port " + _port);
+                    if (usingTCPServer)
+                    {
+                        if (debug)
+                            Debug.Log(Now() + "SocketReader is waiting for the client at port " + _port);
+                        _clientSocket = _serverSocket.AcceptTcpClient();
+                    }
+                    else
+                    {
+                        if (debug)
+                            Debug.Log(Now() + "SocketReader trying to connect to server '" + _hostname + "' port " + _port);
+                        _clientSocket = new TcpClient(_hostname, _port);
+                    }
 
-                    _clientSocket = new TcpClient(_hostname, _port);
                     try
                     {
                         // Start the thread for writing here, so it can use the same `TcpClient` and `NetworkStream`.
@@ -208,7 +236,7 @@ namespace Janelia
                         using (NetworkStream stream = _clientSocket.GetStream())
                         {
                             if (debug)
-                                Debug.Log(Now() + "SocketReader got stream connection to server '" + _hostname + "' port " + _port);
+                                Debug.Log(Now() + "SocketReader got stream connection at " + port);
 
                             int length;
                             while ((length = stream.Read(readBuffer, 0, readBuffer.Length)) != 0)
@@ -307,6 +335,7 @@ namespace Janelia
         private int _bufferSizeBytes;
         private int _readBufferCount;
 
+        private TcpServer _serverSocket;
         private TcpClient _clientSocket;
 
         private System.Threading.Thread _thread;
