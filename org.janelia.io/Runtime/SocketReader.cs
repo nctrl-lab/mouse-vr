@@ -25,13 +25,29 @@ namespace Janelia
         {
             usingTCPServer = useTCPServer;
             usingUDP = useTCPServer ? false : useUDP;
-            _hostname = useTCPServer ? "127.0.0.1" : hostname;
+            _hostname = useTCPServer ? getIPAddress() : hostname;
             _port = port;
             _connectRetryMs = connectRetryMs;
             _bufferSizeBytes = bufferSizeBytes;
             _readBufferCount = readBufferCount;
             _ringBuffer = new RingBuffer(_readBufferCount, _bufferSizeBytes);
             _writeBuffer = new Byte[_bufferSizeBytes];
+        }
+
+        private string getIPAddress()
+        {
+            IPHostEntry host;
+            string localIP = "";
+            host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    localIP = ip.ToString();
+                }
+
+            }
+            return localIP;
         }
 
         ~SocketReader()
@@ -44,10 +60,6 @@ namespace Janelia
             if (debug)
                 Debug.Log(Now() + "SocketReader.Start() creating socket thread");
 
-            if (usingTCPServer) {
-                _server = new TcpListener(IPAddress.Loopback, _port);
-                _server.Start();
-            }
 
             _thread = usingUDP ?
                 new System.Threading.Thread(ThreadFunctionUDP) { IsBackground = true } :
@@ -131,7 +143,7 @@ namespace Janelia
 
                 if (_serverSocket != null)
                 {
-                    _serverSocket.Close();
+                    _serverSocket.Stop();
                     _serverSocket = null;
                 }
             }
@@ -210,6 +222,15 @@ namespace Janelia
                 Debug.Log(Now() + "SocketReader using TCP");
 
             Byte[] readBuffer = new Byte[_bufferSizeBytes];
+
+            // Starting TCP server
+            if (usingTCPServer)
+            {
+                IPAddress[] ipArray = Dns.GetHostAddresses(_hostname);
+                _serverSocket = new TcpListener(ipArray[0], _port);
+                _serverSocket.Start();
+            }
+
             while (true)
             {
                 try
@@ -217,7 +238,7 @@ namespace Janelia
                     if (usingTCPServer)
                     {
                         if (debug)
-                            Debug.Log(Now() + "SocketReader is waiting for the client at port " + _port);
+                            Debug.Log(Now() + "SocketReader is waiting for the client at IP '" + _hostname + "' port " + _port);
                         _clientSocket = _serverSocket.AcceptTcpClient();
                     }
                     else
@@ -233,10 +254,11 @@ namespace Janelia
                         _writeThread = new System.Threading.Thread(WriteThreadFunctionTCP) { IsBackground = true };
                         _writeThread.Start();
 
+                        // Socket connected
+                        Debug.Log(Now() + "SocketReader got stream connection at " + _port);
                         using (NetworkStream stream = _clientSocket.GetStream())
                         {
-                            if (debug)
-                                Debug.Log(Now() + "SocketReader got stream connection at " + port);
+                            Debug.Log(Now() + "SocketReader got stream connection at " + _port);
 
                             int length;
                             while ((length = stream.Read(readBuffer, 0, readBuffer.Length)) != 0)
@@ -251,8 +273,10 @@ namespace Janelia
                                     Debug.Log("SocketReader added " + length + " bytes to the ring buffer");
                             }
                         }
+                        // Socket disconnected
+                        Debug.Log("SocketReader lost connection");
                     }
-                    catch (SocketException socketException)
+                    catch (SocketException socketException) // Socket connection error
                     {
                         if (debug)
                             Debug.Log(Now() + "SocketReader reading socket exception: " + socketException);
@@ -265,13 +289,15 @@ namespace Janelia
                         Debug.Log(Now() + "SocketReader connection socket exception: " + socketException);
                         Debug.Log(Now() + "SocketReader sleeping for " + _connectRetryMs + " ms before retrying");
                     }
-
+                    System.Threading.Thread.Sleep(_connectRetryMs);
+                }
+                finally
+                {
                     if (_writeThread != null)
                     {
                         _writeThread.Abort();
+                        _writeThreadInitialized = false;
                     }
-
-                    System.Threading.Thread.Sleep(_connectRetryMs);
                 }
             }
         }
@@ -296,6 +322,7 @@ namespace Janelia
                         _writeThreadInitialized = true;
                     }
 
+                    try {
                     while (true)
                     {
                         lock (_writeLock)
@@ -309,6 +336,11 @@ namespace Janelia
 
                             stream.Write(_writeBuffer, _writeOffset, _writeLength);
                         }
+                    }
+                    }
+                    catch (SocketException socketException)
+                    {
+                        Debug.Log("Error");
                     }
                 }
             }
@@ -335,7 +367,7 @@ namespace Janelia
         private int _bufferSizeBytes;
         private int _readBufferCount;
 
-        private TcpServer _serverSocket;
+        private TcpListener _serverSocket;
         private TcpClient _clientSocket;
 
         private System.Threading.Thread _thread;
