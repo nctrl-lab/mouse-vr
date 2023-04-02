@@ -83,7 +83,9 @@ namespace Janelia
             _reader.LogParameters(); // remember to log parameters every time you change
             _reader.Start();
 
-            // TODO: start Socket input / output here
+            // Socket communication
+            _socket = new SocketReader();
+            _socket.Start();
         }
 
         private void Update()
@@ -161,9 +163,28 @@ namespace Janelia
             if (logTreadmill)
             {
                 Logger.Log(treadmillLog);
-                // TODO: Socket output log should be done here
+                if (_socket.Connected)
+                    _socket.Write(ToJovianLog(treadmillLog));
             }
             treadmillLog.events.Clear();
+        }
+
+        private Byte[] ToJovianLog(MouseTreadmillReader.MouseTreadmillLog log)
+        {
+            float jovianRotation = Quaternion.Angle(Quaternion.Euler(0f, log.rotation, 0f), Quaternion.Euler(0f, 90f, 0f))); // this gives an absolute angle > 0
+
+            // 45 cm = 4.5 UnityUnit = 4500 in Jovian log
+            string output = String.Format("{0},{1:F0},{2:F0},{3:F0},{4:F0},{5:F0},2,{6:F0},{7:F0},{8:F0},{9:F0},{10}",
+                log.readTimestampMs,
+                1000 * log.position.x, 1000 * log.position.z, 1000 * log.position.y,
+                1000 * log.speed, 100 * jovianRotation,
+                1000 * log.ballSpeed,
+                100 * log.roll, 100 * log.pitch, 100 * log.yaw,
+                log.events.Count);
+            if (log.events.Count > 0)
+                output += $",{String.Join(",", log.events.ToArray())}";
+            // To bytes
+            return System.Text.Encoding.UTF8.GetBytes(output);
         }
 
         private void OnTriggerEnter(Collider other) // This comes before Update() method
@@ -194,5 +215,6 @@ namespace Janelia
         private MouseTreadmillReader _reader;
         private Rigidbody _rigidbody;
         private MouseTreadmillReader.MouseTreadmillLog treadmillLog = new MouseTreadmillReader.MouseTreadmillLog();
+        private SocketReader _socket;
     }
 }

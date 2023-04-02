@@ -15,7 +15,9 @@ namespace Janelia
         // Supports UDP (the default) or TCP.
         public readonly bool usingUDP;
         public readonly bool usingTCPServer;
-        public bool debug = true;
+        public bool debug = false;
+
+        public bool Connected { get; private set; }
 
         // Setting this flag to `true` will reduce performance.,
         public bool debugSlowly = false;
@@ -250,6 +252,8 @@ namespace Janelia
 
                     try
                     {
+                        Connected = true;
+
                         // Start the thread for writing here, so it can use the same `TcpClient` and `NetworkStream`.
                         _writeThread = new System.Threading.Thread(WriteThreadFunctionTCP) { IsBackground = true };
                         _writeThread.Start();
@@ -289,6 +293,7 @@ namespace Janelia
                         Debug.Log(Now() + "SocketReader connection socket exception: " + socketException);
                         Debug.Log(Now() + "SocketReader sleeping for " + _connectRetryMs + " ms before retrying");
                     }
+                    Connected = false;
                     System.Threading.Thread.Sleep(_connectRetryMs);
                 }
                 finally
@@ -298,6 +303,7 @@ namespace Janelia
                         _writeThread.Abort();
                         _writeThreadInitialized = false;
                     }
+                    Connected = false;
                 }
             }
         }

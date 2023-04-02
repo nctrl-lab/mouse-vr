@@ -145,5 +145,15 @@ namespace Janelia
                 models[name].transform.position = position;
             }
         }
+
+        public Vector3 GetPosition(string name)
+        {
+            if (models == null)
+                Start();
+            if (name.StartsWith("console"))
+                return player.transform.position;
+            else if (models.ContainsKey(name))
+                return models[name].transform.position;
+        }
     }
 }
