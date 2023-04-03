@@ -88,6 +88,8 @@ namespace Janelia
             _socket.Start();
         }
 
+        // Don't forget to add ForceRenderRate.cs!!!
+        // socket and log can generate errors
         private void Update()
         {
             if (Input.GetKey("q") || Input.GetKey(KeyCode.Escape))
@@ -171,7 +173,7 @@ namespace Janelia
 
         private Byte[] ToJovianLog(MouseTreadmillReader.MouseTreadmillLog log)
         {
-            float jovianRotation = Quaternion.Angle(Quaternion.Euler(0f, log.rotation, 0f), Quaternion.Euler(0f, 90f, 0f))); // this gives an absolute angle > 0
+            float jovianRotation = Quaternion.Angle(Quaternion.Euler(0f, log.rotation, 0f), Quaternion.Euler(0f, 90f, 0f)); // this gives an absolute angle > 0
 
             // 45 cm = 4.5 UnityUnit = 4500 in Jovian log
             string output = String.Format("{0},{1:F0},{2:F0},{3:F0},{4:F0},{5:F0},2,{6:F0},{7:F0},{8:F0},{9:F0},{10}",
@@ -183,6 +185,7 @@ namespace Janelia
                 log.events.Count);
             if (log.events.Count > 0)
                 output += $",{String.Join(",", log.events.ToArray())}";
+            output += "\n";
             // To bytes
             return System.Text.Encoding.UTF8.GetBytes(output);
         }
@@ -215,6 +218,6 @@ namespace Janelia
         private MouseTreadmillReader _reader;
         private Rigidbody _rigidbody;
         private MouseTreadmillReader.MouseTreadmillLog treadmillLog = new MouseTreadmillReader.MouseTreadmillLog();
-        private SocketReader _socket;
+        public SocketReader _socket;
     }
 }

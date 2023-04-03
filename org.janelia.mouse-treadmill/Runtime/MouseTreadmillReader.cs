@@ -27,18 +27,23 @@ namespace Janelia
             _ftdiReader.Start(); // This starts a thread that continously reads serial input
         }
 
-        public void Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillLog treadmillLog)
+        public bool Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillLog treadmillLog)
         {
             // dx is right(+)-left(-). dz is forward(+)-back(-). dy is rotation angle (clockwise(+)-counterclockwise(-))
+            bool _updated = false;
             UInt64 _readTimestampMs = 0;
             int _dx = 0; int _dz = 0; int _dy = 0;
             while (GetNextMessage(ref _message)) // Reads till there's no remaining buffer
             {
+                _updated = true;
                 _readTimestampMs = _message.readTimestampMs;
                 _dx += _message.y0 - _message.y1;
                 _dz += _message.y0 + _message.y1;
                 _dy += _message.x0 + _message.x1; // Unity has a left-handed coordinate system.
             }
+            
+            // If got no message, do not update
+            if (!_updated) return false;
 
             // Translation and rotation logic comes here
             if (reverseDirection)
@@ -85,6 +90,8 @@ namespace Janelia
             treadmillLog.pitch = pitch;
             treadmillLog.roll = roll;
             treadmillLog.yaw = yaw;
+
+            return true;
         }
 
         public bool GetNextMessage(ref MouseTreadmillParser.Message _message)

@@ -20,32 +20,35 @@ namespace Janelia
         public void Start()
         {
             player = GameObject.Find("Player");
+            if (player == null) Debug.LogError("The object 'Player' should exist.");
             playerController = player.GetComponent<PlayerController>();
             _isConnected = playerController.allowMovement;
 
             env = GameObject.Find("Environment");
-            MeshFilter[] meshs = env.GetComponentsInChildren<MeshFilter>();
-
-            // Teleport target and potential movable objects
-            foreach (MeshFilter mesh in meshs)
+            if (env != null)
             {
-                string name = mesh.transform.name;
-                models.Add(name, mesh.gameObject);
+                MeshFilter[] meshs = env.GetComponentsInChildren<MeshFilter>();
 
-                string[] subname = name.Trim('_').Split('_');
-                if (subname[0].ToLower().Contains("start"))
+                // Teleport target and potential movable objects
+                foreach (MeshFilter mesh in meshs)
                 {
-                    if (subname.Length == 2)
+                    string name = mesh.transform.name;
+                    models.Add(name, mesh.gameObject);
+
+                    string[] subname = name.Trim('_').Split('_');
+                    if (subname[0].ToLower().Contains("start"))
                     {
-                        starts.Add(subname[1], mesh.transform.position);
-                    }
-                    else // no name
-                    {
-                        starts.Add("", mesh.transform.position);
+                        if (subname.Length == 2)
+                        {
+                            starts.Add(subname[1], mesh.transform.position);
+                        }
+                        else // no name
+                        {
+                            starts.Add("", mesh.transform.position);
+                        }
                     }
                 }
             }
-
         }
 
         public static void BlankDisplay(bool state) // true: off, false: on
@@ -154,6 +157,9 @@ namespace Janelia
                 return player.transform.position;
             else if (models.ContainsKey(name))
                 return models[name].transform.position;
+            else
+                return Vector3.zero;
+
         }
     }
 }

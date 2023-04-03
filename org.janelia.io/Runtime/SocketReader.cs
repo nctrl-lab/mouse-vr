@@ -252,6 +252,7 @@ namespace Janelia
 
                     try
                     {
+                        _clientSocket.NoDelay = true;
                         Connected = true;
 
                         // Start the thread for writing here, so it can use the same `TcpClient` and `NetworkStream`.
@@ -328,7 +329,6 @@ namespace Janelia
                         _writeThreadInitialized = true;
                     }
 
-                    try {
                     while (true)
                     {
                         lock (_writeLock)
@@ -343,17 +343,13 @@ namespace Janelia
                             stream.Write(_writeBuffer, _writeOffset, _writeLength);
                         }
                     }
-                    }
-                    catch (SocketException socketException)
-                    {
-                        Debug.Log("Error");
-                    }
                 }
             }
             catch (SocketException socketException)
             {
                 if (debug)
                     Debug.Log(Now() + "SocketReader [write] socket exception: " + socketException);
+                Connected = false;
             }
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.IO.Ports;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace Janelia
 {
     public class TaskController : MonoBehaviour
     {
+        public bool debug = false;
         // API to control VR environment
         Vr vr = new Vr();
         
@@ -28,10 +30,15 @@ namespace Janelia
 
         // Socket communication
         public int socketPort = 22223;
-        public SocketReader socket;
+        private SocketReader socket;
         private Byte[] socketBuffer = new Byte[1024];
         private string socketData = "";
         private long socketTimestampMs;
+        Regex regex_s = new Regex(@"^(\w+)\.(\w+)\(\s*'*\s*(\w+)\s*'*\s*\)\n?");
+        Regex regex_3 = new Regex(@"^(\w+)\.(\w+)\(\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)\n?");
+        Regex regex_4 = new Regex(@"^(\w+)\.(\w+)\(\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)\n?");
+        Regex regex_s3 = new Regex(@"^(\w+)\.(\w+)\(\s*'*\s*(\w+)\s*'*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)\s*\)\n?");
+        Match match;
 
         // Task states
         public enum States
@@ -128,80 +135,114 @@ namespace Janelia
             }
         }
 
-        // Reads messages from socket connection
         private void Update()
         {
-
+            // Reads messages from socket connection
             while (socket.Take(ref socketBuffer, ref socketTimestampMs))
             {
-                socketData += System.Text.Encoding.UTF8.GetString(socketBuffer);
-            }
-
-            while (socketData.Length > 0 && socketData.IndexOf('\n') >= 0)
-            {
-                string[] cmds = socketData.Split('\n', 2);
+                socketData = System.Text.Encoding.UTF8.GetString(socketBuffer);
+                // TODO: I tried to split by newline delimeters but failed...
+                if (debug)
+                    Debug.Log("Socket Message: " + socketData);
                 JovianToVr(socketData);
-                socketData = cmds[1];
             }
         }
 
         private void JovianToVr(string cmd)
         {
-            cmd = cmd.ToLower();
-
-            // toggle motion
-            if (cmd.StartsWith("console.toggle_motion"))
+            try
             {
-                vr.Connect();
+                cmd = cmd.ToLower();
+
+                // toggle motion
+                if (cmd.StartsWith("console.toggle_motion"))
+                {
+                    Vr.Connect();
+                }
+
+                // toggle display
+                else if (cmd.StartsWith("console.toggle_blanking"))
+                {
+                    Vr.BlankDisplay();
+                }
+
+                // blank display
+                else if (cmd.StartsWith("console.blank_display"))
+                {
+                    if (cmd.StartsWith("console.blank_display(1)"))
+                        Vr.BlankDisplay(false);
+                    else
+                        Vr.BlankDisplay(true);
+                }
+
+                // teleport player
+                else if (cmd.StartsWith("console.teleport"))
+                {
+                    match = regex_s.Match(cmd);
+                    if (match.Success)
+                    {
+                        vr.Teleport(match.Groups[3].Value);
+                    }
+
+                    match = regex_3.Match(cmd);
+                    if (match.Success)
+                    {
+                        float x = float.Parse(match.Groups[3].Value);
+                        float z = float.Parse(match.Groups[5].Value);
+                        float y = float.Parse(match.Groups[7].Value);
+                        Vector3 position = new Vector3(x, y, z);
+                        vr.Teleport(position);
+                    }
+
+                    match = regex_4.Match(cmd);
+                    if (match.Success)
+                    {
+                        float x = float.Parse(match.Groups[3].Value);
+                        float z = float.Parse(match.Groups[5].Value);
+                        float y = float.Parse(match.Groups[7].Value);
+                        Vector3 position = new Vector3(x, y, z);
+                        float rotation = float.Parse(match.Groups[9].Value);
+                        vr.Teleport(position, rotation);
+                    }
+                }
+
+                // teleport object
+                else if (cmd.StartsWith("model.move"))
+                {
+                    match = regex_s3.Match(cmd);
+                    if (match.Success)
+                    {
+                        string name = match.Groups[3].Value;
+                        float x = float.Parse(match.Groups[4].Value);
+                        float z = float.Parse(match.Groups[6].Value);
+                        float y = float.Parse(match.Groups[8].Value);
+                        Vector3 position = new Vector3(x, y, z);
+                        vr.Move(name, position);
+                    }
+                }
+
+                else if (cmd.StartsWith("model.get_position"))
+                {
+                    match = regex_s.Match(cmd);
+                    if (match.Success)
+                    {
+                        string name = match.Groups[3].Value;
+                        Vector3 position = vr.GetPosition(name);
+                        string msg = String.Format("{0:0F},{1:0F},{2:0F}",
+                            1000 * position.x, 1000 * position.z, 1000 * position.y);
+                        socket.Write(System.Text.Encoding.UTF8.GetBytes(msg));
+                    }
+                }
+
+                // reward
+                else if (cmd.StartsWith("reward"))
+                {
+                    Reward();
+                }
             }
-
-            // toggle motion
-            else if (cmd.StartsWith("console.toggle_blanking"))
+            catch (Exception e)
             {
-                vr.BlankDisplay();
-            }
-
-            // blank display
-            else if (cmd.StartsWith("console.blank_display"))
-            {
-                if (cmd.StartsWidth("console.blank_display(1)"))
-                    vr.BlankDisplay(false);
-                else
-                    vr.BlankDisplay(true);
-            }
-
-            // teleport player
-            else if (cmd.StartsWith("console.teleport"))
-            {
-                string[] opt = cmd.Replace("console.teleport(", "").TrimEnd(')').Split(',');
-                Vector3 position = new Vector3(float.Parse(opt[0]), float.Parse(opt[2]), float.Parse(opt[1]));
-                float rotation = float.Parse(opt[3]); // east 0 north 90 west +-/180 south -90
-                vr.Teleport(position, rotation);
-            }
-
-            // teleport object
-            else if (cmd.StartsWith("model.move"))
-            {
-                string[] opt = cmd.Replace("model.move(", "").TrimEnd(')').Split(',');
-                string name = opt[0].Trim('\'');
-                Vector3 position = new Vector3(float.Parse(opt[1]), float.Parse(opt[3]), float.Parse(opt[2]));
-                vr.Move(name, position);
-            }
-
-            else if (cmd.StartsWith("model.get_position"))
-            {
-                string[] opt = cmd.Replace("model.get_position(", "").TrimEnd(')');
-                string name = opt[0].Trim('\'');
-                Vector3 position = vr.GetPosition(name);
-                string msg = String.Format("{0:0F},{1:0F},{2:0F}",
-                    1000 * position.x, 1000 * position.z, 1000 * position.y);
-                socket.Write(System.Text.Encoding.UTF8.GetBytes(msg));
-            }
-
-            // reward
-            else if (cmd.StartsWith("reward"))
-            {
-                Reward()
+                Debug.Log("JovianToVr Error: failed to parse " + cmd);
             }
         }
 

@@ -4,6 +4,7 @@
     "references": [
         "Janelia.Mouse-treadmill.Runtime",
         "Janelia.Logging.Runtime",
+        "Janelia.Io.Runtime",
         "PathCreator"
     ],
     "includePlatforms": [],
