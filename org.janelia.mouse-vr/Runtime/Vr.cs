@@ -32,7 +32,7 @@ namespace Janelia
                 // Teleport target and potential movable objects
                 foreach (MeshFilter mesh in meshs)
                 {
-                    string name = mesh.transform.name;
+                    string name = mesh.transform.name.ToLower(); // Let's use lower case naming only.
                     models.Add(name, mesh.gameObject);
 
                     string[] subname = name.Trim('_').Split('_');
@@ -75,6 +75,15 @@ namespace Janelia
         {
             PlayerController playerController = GameObject.FindObjectOfType<PlayerController>();
             playerController.allowMovement = !playerController.allowMovement;
+        }
+
+        public static void Quit()
+        {
+            #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+            #elif UNITY_STANDALONE
+                Application.Quit();
+            #endif
         }
 
         public void Teleport(Vector3 position, Vector3 rotation)

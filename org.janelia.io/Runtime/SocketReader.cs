@@ -225,20 +225,19 @@ namespace Janelia
 
             Byte[] readBuffer = new Byte[_bufferSizeBytes];
 
-            // Starting TCP server
-            if (usingTCPServer)
-            {
-                IPAddress[] ipArray = Dns.GetHostAddresses(_hostname);
-                _serverSocket = new TcpListener(ipArray[0], _port);
-                _serverSocket.Start();
-            }
-
             while (true)
             {
                 try
                 {
                     if (usingTCPServer)
                     {
+                        if (_serverSocket == null)
+                        {
+                            // Starting TCP server
+                            IPAddress[] ipArray = Dns.GetHostAddresses(_hostname);
+                            _serverSocket = new TcpListener(ipArray[0], _port);
+                            _serverSocket.Start();
+                        }
                         if (debug)
                             Debug.Log(Now() + "SocketReader is waiting for the client at IP '" + _hostname + "' port " + _port);
                         _clientSocket = _serverSocket.AcceptTcpClient();
@@ -260,26 +259,32 @@ namespace Janelia
                         _writeThread.Start();
 
                         // Socket connected
-                        Debug.Log(Now() + "SocketReader got stream connection at " + _port);
                         using (NetworkStream stream = _clientSocket.GetStream())
                         {
                             Debug.Log(Now() + "SocketReader got stream connection at " + _port);
 
                             int length;
-                            while ((length = stream.Read(readBuffer, 0, readBuffer.Length)) != 0)
+                            try {
+                                while ((length = stream.Read(readBuffer, 0, readBuffer.Length)) != 0)
+                                {
+                                    if (debugSlowly)
+                                        Debug.Log("SocketReader read " + length + " bytes");
+
+                                    _ringBuffer.Give(readBuffer);
+                                    Array.Clear(readBuffer, 0, length);
+
+                                    if (debugSlowly)
+                                        Debug.Log("SocketReader added " + length + " bytes to the ring buffer");
+                                }
+                            }
+                            catch (Exception e)
                             {
-                                if (debugSlowly)
-                                    Debug.Log("SocketReader read " + length + " bytes");
-
-                                _ringBuffer.Give(readBuffer);
-                                Array.Clear(readBuffer, 0, length);
-
-                                if (debugSlowly)
-                                    Debug.Log("SocketReader added " + length + " bytes to the ring buffer");
+                                if (debug)
+                                    Debug.Log(Now() + "SocketReader read exception: " + e);
                             }
                         }
                         // Socket disconnected
-                        Debug.Log("SocketReader lost connection");
+                        Debug.Log(Now() + "SocketReader lost connection at " + _port);
                     }
                     catch (SocketException socketException) // Socket connection error
                     {
@@ -295,16 +300,24 @@ namespace Janelia
                         Debug.Log(Now() + "SocketReader sleeping for " + _connectRetryMs + " ms before retrying");
                     }
                     Connected = false;
-                    System.Threading.Thread.Sleep(_connectRetryMs);
-                }
-                finally
-                {
                     if (_writeThread != null)
                     {
                         _writeThread.Abort();
                         _writeThreadInitialized = false;
+                        _writeThread = null;
                     }
-                    Connected = false;
+                    if (_clientSocket != null)
+                    {
+                        _clientSocket.Close();
+                        _clientSocket = null;
+                    }
+
+                    if (_serverSocket != null)
+                    {
+                        _serverSocket.Stop();
+                        _serverSocket = null;
+                    }
+                    System.Threading.Thread.Sleep(_connectRetryMs);
                 }
             }
         }
@@ -345,10 +358,10 @@ namespace Janelia
                     }
                 }
             }
-            catch (SocketException socketException)
+            catch (Exception exception)
             {
                 if (debug)
-                    Debug.Log(Now() + "SocketReader [write] socket exception: " + socketException);
+                    Debug.Log(Now() + "SocketReader [write] exception: " + exception);
                 Connected = false;
             }
         }

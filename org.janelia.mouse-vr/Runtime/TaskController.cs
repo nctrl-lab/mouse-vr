@@ -34,10 +34,11 @@ namespace Janelia
         private Byte[] socketBuffer = new Byte[1024];
         private string socketData = "";
         private long socketTimestampMs;
+        Regex regchar = new Regex("[^_0-9a-zA-Z(),.']");
         Regex regex_s = new Regex(@"^(\w+)\.(\w+)\(\s*'*\s*(\w+)\s*'*\s*\)\n?");
         Regex regex_3 = new Regex(@"^(\w+)\.(\w+)\(\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)\n?");
         Regex regex_4 = new Regex(@"^(\w+)\.(\w+)\(\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)\n?");
-        Regex regex_s3 = new Regex(@"^(\w+)\.(\w+)\(\s*'*\s*(\w+)\s*'*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)\s*\)\n?");
+        Regex regex_s3 = new Regex(@"^(\w+)\.(\w+)\(\s*'?\s*(\w+)\s*'?\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)\s*\)\n?");
         Match match;
 
         // Task states
@@ -142,9 +143,17 @@ namespace Janelia
             {
                 socketData = System.Text.Encoding.UTF8.GetString(socketBuffer);
                 // TODO: I tried to split by newline delimeters but failed...
-                if (debug)
-                    Debug.Log("Socket Message: " + socketData);
-                JovianToVr(socketData);
+                string[] msgs = socketData.Split('\n');
+                foreach (string m in msgs)
+                {
+                    string msg = regchar.Replace(m, string.Empty);
+                    if (msg.Length < 1) continue;
+                    if (debug)
+                    {
+                        Debug.Log("Socket Message: " + msg);
+                    }
+                    JovianToVr(msg);
+                }
             }
         }
 
@@ -238,6 +247,12 @@ namespace Janelia
                 else if (cmd.StartsWith("reward"))
                 {
                     Reward();
+                }
+
+                // quit
+                else if (cmd.StartsWith("quit"))
+                {
+                    Quit();
                 }
             }
             catch (Exception e)
