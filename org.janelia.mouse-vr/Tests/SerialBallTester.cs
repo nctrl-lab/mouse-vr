@@ -192,11 +192,9 @@ namespace Janelia
                         if (_buffer[i] == 0)
                         {
                             // check packet loss here by checking counter
-                            if (packetNum == 0 || ((packetNum % 255 + 1) == (int)_buffer[i + 1]))
-                                packetNum = (int)_buffer[i + 1];
-                            else
+                            if (packetNum > 0 && ((packetNum % 255 + 1) != (int)_buffer[i + 1]))
                                 missingPacket++;
-
+                            packetNum = (int)_buffer[i + 1];
                             x0 += (int)_buffer[i + 2] - 128;
                             y0 += (int)_buffer[i + 3] - 128;
                             x1 += (int)_buffer[i + 4] - 128;
