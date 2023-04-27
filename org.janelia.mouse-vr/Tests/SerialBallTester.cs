@@ -19,7 +19,7 @@
 // packet[5] : camera 1 y pixel shift, offset by 128
 //
 // Sampling frequency was around 41.5 kHz
-// Teensy is sending 341-342 packets in bulk, which is around 1.2 kHz.
+// Teensy is sending 341-342 packets (2046-2052 bytes)in bulk, which is around 1.2 kHz.
 //
 //  Actual calculation of pitch, roll, and yaw is done as below:
 //      dx0 += x[0] - 128, dx1 += x[1] - 128        : accumulate movement
@@ -52,8 +52,8 @@ namespace Janelia
         public const float BALL_DIAMETER_INCH = 16f; // 16 inch = 40.64 cm
         public const float BALL_ARC_LENGTH_PER_DEGREE = BALL_DIAMETER_INCH * 0.254f * Mathf.PI / 360; // (0.035465 dm / degree)
 
-        
-        [SerializeField] private bool reversed = true; // camera 0 
+        [SerializeField] private int endInSecond = 0; // use to count the number of packets per second.
+        [SerializeField] private bool reversed = false;
         [SerializeField] private int x0 = 0; // camera 0 
         [SerializeField] private int y0 = 0; // camera 0 
         [SerializeField] private int x1 = 0; // camera 1
@@ -70,9 +70,7 @@ namespace Janelia
         [SerializeField] private int nReadBytes = 0;
         [SerializeField] private int packetNum = 0;
 
-
         // One packet is 6 bytes.
-        // Ball cameras are running at 4 kHz, so we are reading at 400 Hz.
         private const int PACKET_SIZE = 6;
         private byte[] _buffer;
 
@@ -147,7 +145,7 @@ namespace Janelia
             dz = 0;
 
             // Timer to check packet number
-            if (Time.time > 10)
+            if (endInSecond > 0 && Time.time > endInSecond)
             {
                 Debug.Log(readCount);
                 UnityEditor.EditorApplication.isPlaying = false;
