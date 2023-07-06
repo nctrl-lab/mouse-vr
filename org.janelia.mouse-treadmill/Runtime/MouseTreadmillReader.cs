@@ -18,13 +18,13 @@ namespace Janelia
         public float yawScale = 0.112f; // Calibaration scale for yaw (degree / pixel)
         public float forwardMultiplier = 1f;
         public float sideMultiplier = 1f;
-        public const float BALL_DIAMETER_INCH = 16f; // 16 inch = 40.64 cm
+        public float BALL_DIAMETER_INCH = 16f; // 16 inch = 40.64 cm
         public const float BALL_ARC_LENGTH_PER_DEGREE = BALL_DIAMETER_INCH * 0.254f * Mathf.PI / 360; // (0.035465 dm / degree)
 
         public void Start()
         {
-            _ftdiReader = new FtdiReader();
-            _ftdiReader.Start(); // This starts a thread that continously reads serial input
+            _serialReader = new SerialReader();
+            _serialReader.Start(); // This starts a thread that continously reads serial input
         }
 
         public bool Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillLog treadmillLog)
@@ -158,8 +158,8 @@ namespace Janelia
             public float ballArcLengthPerDegree;
         }; public MouseTreadmillParameterLog parameterLog = new MouseTreadmillParameterLog(); 
 
-        private FtdiReader _ftdiReader;
-        private Byte[] _ftdiReaderBuffer = new byte[FtdiReader.READ_SIZE_BYTES];
+        private SerialReader _serialReader;
+        private Byte[] _serialReaderBuffer = new byte[SerialReader.READ_SIZE_BYTES];
 
         private MouseTreadmillParser.Message _message = new MouseTreadmillParser.Message();
     }

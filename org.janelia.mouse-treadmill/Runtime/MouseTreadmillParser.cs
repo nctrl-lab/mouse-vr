@@ -5,7 +5,7 @@ namespace Janelia
 {
     public class MouseTreadmillParser
     {
-        public const int BYTE_PER_PACKET = 12;
+        public const int BYTE_PER_PACKET = 6;
         public const int CLIP_PIXEL = 12; // During testing, the maximal pixel value was around 10.
 
         public struct Message
