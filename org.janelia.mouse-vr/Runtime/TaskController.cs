@@ -254,10 +254,15 @@ namespace Janelia
                 {
                     Quit();
                 }
+
+                else
+                {
+                    Debug.Log("JovianToVr Error: failed to parse " + cmd);
+                }
             }
             catch (Exception e)
             {
-                Debug.Log("JovianToVr Error: failed to parse " + cmd);
+                Debug.Log("JovianToVr Error: " + e);
             }
         }
 

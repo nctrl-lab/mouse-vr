@@ -31,14 +31,17 @@ using UnityEngine;
 
 namespace Janelia
 {
-    public class SerialReader
+    public class PixartReader
     {
-
-        // This reads 10 packets (=120 bytes) per read.
+        // This reads 10 packets (=60 bytes / 400 Hz) per read.
         public const int PACKET_SIZE = 6; // 12 for FTDI, 6 for PixArt ball reader
-        public const UInt32 READ_SIZE_BYTES = 120;
+        public const int READ_SIZE_BYTES = 60;
 
-        public string comPort = "COM4";
+        public string comPort = "COM3";
+        public PixartReader(string comPortPixart)
+        {
+            comPort = comPortPixart;
+        }
 
         public bool Start()
         {
@@ -53,6 +56,11 @@ namespace Janelia
             _serial.RtsEnable = true;
             _serial.DtrEnable = true;
 
+            _serial.Open();
+            _serial.DiscardInBuffer();
+            _serial.DiscardOutBuffer();
+            _serial.BaseStream.Flush();
+            
             SetStreaming(_serial, 1); // This sends a serial command to start streaming
 
             _thread = new Thread(ThreadFunction);
@@ -70,7 +78,6 @@ namespace Janelia
         {
             _ringBuffer.Clear();
         }
-
 
         public void Close()
         {
@@ -110,8 +117,8 @@ namespace Janelia
                     {
                         int i = 0;
                         while (i < READ_SIZE_BYTES && recvBuffer[i]!=0) i++;
-                        if (i%12 != 0)
-                            _serial.Read(new byte[i%12], 0, (UInt32)i%12);
+                        if (i%6 != 0)
+                            _serial.Read(new byte[i%6], 0, i%6);
                         Debug.Log("SerialReader.ThreadFunction: packet reading error");
                         _errorCount++;
                     }
@@ -132,14 +139,12 @@ namespace Janelia
         private void SetStreaming(SerialPort serial, int status)
         {
             if (status > 0)
-                _serial.Write(new byte[] { 254, 0 }, 0, 2);
+                serial.Write(new byte[] { 255, 0 }, 0, 2);
             else
-                _serial.Write(new byte[] { 255, 0 }, 0, 2);
+                serial.Write(new byte[] { 254, 0 }, 0, 2);
         }
 
         private const int BUFFER_COUNT = 400; // Discard data after 1 second
-
-        private UInt32 _deviceCount;
         private int _errorCount;
 
         private Thread _thread;

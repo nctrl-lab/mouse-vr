@@ -9,18 +9,19 @@ namespace Janelia
     {
         // Task parameters
         string animalName = "", taskType = "", notes = "";
-        string comPort = "COM5";
+        string comPortPixArt = "COM3";
+        string comPortReward = "COM4";
         int nTrial = 100, rewardAmountUl = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         bool followPath = false;
         bool reverseDirection = false;
         bool logTreadmill = true;
-        float maxRotationSpeed = 120.0f;
+        float maxRotationSpeed = 360.0f;
         float pathRotationMix = 0.2f;
-        float pitchScale = 0.144f;
-        float rollScale = 0.170f;
-        float yawScale = 0.112f;
+        float pitchScale = 0.9f;
+        float rollScale = 0.0f;
+        float yawScale = 0.0f;
         float forwardMultiplier = 1f;
         float sideMultiplier = 1f;
 
@@ -56,7 +57,8 @@ namespace Janelia
             taskType = EditorGUILayout.TextField("Task type", taskType);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
-            comPort = EditorGUILayout.TextField("COM Port", comPort);
+            comPortReward = EditorGUILayout.TextField("COM Port Reward", comPortReward);
+            comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
 
             EditorGUILayout.Space(10);
 
@@ -69,6 +71,7 @@ namespace Janelia
 
             GUILayout.Label("Ball parameters", EditorStyles.boldLabel);
             followPath = EditorGUILayout.Toggle("Follow path", followPath);
+            reverseDirection = EditorGUILayout.Toggle("Reverse direction", reverseDirection);
             allowRotationRoll = EditorGUILayout.Toggle("Allow rotation by roll", allowRotationRoll);
             allowRotationYaw = EditorGUILayout.Toggle("Allow rotation by yaw", allowRotationYaw);
             maxRotationSpeed = EditorGUILayout.FloatField("Max rotation speed (degree/s)", maxRotationSpeed);
@@ -190,11 +193,12 @@ namespace Janelia
             taskController.task = taskType;
             taskController.nTrial = nTrial;
             taskController.note = notes;
-            taskController.comPort = comPort;
+            taskController.comPort = comPortReward;
 
             playerController = player.GetComponent<PlayerController>();
             playerController.allowRotationYaw = allowRotationYaw;
             playerController.allowRotationRoll = allowRotationRoll;
+            playerController.reverseDirection = reverseDirection;
             playerController.maxRotationSpeed = maxRotationSpeed;
             playerController.pathRotationMix = pathRotationMix;
             playerController.followPath = followPath;

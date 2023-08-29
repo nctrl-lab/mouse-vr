@@ -12,11 +12,11 @@ namespace Janelia
         public bool allowMovement = false;
         public bool allowRotationYaw = false; // allow rotation by yaw
         public bool allowRotationRoll = false; // allow rotation by roll
-        public float maxRotationSpeed = 120.0f; // 120 degree per second
+        public float maxRotationSpeed = 360.0f; // 360 degree per second
         public bool followPath = false;
         public float pathRotationMix = 0.25f;
         public PathCreation.PathCreator pathCreator;
-        public bool reverseDirection = true; // true if the camera is rotated at 180 degrees
+        public bool reverseDirection = false; // true if the camera is rotated at 180 degrees
         public bool logTreadmill = true; // save log of player position and velocity
         public float pitchScale = 0.144f; // Calibration scale for pitch (degree / pixel)
         public float rollScale = 0.170f; // Calibration scale for roll (degree / pixel)
