@@ -56,15 +56,24 @@ namespace Janelia
             _serial.RtsEnable = true;
             _serial.DtrEnable = true;
 
-            _serial.Open();
-            _serial.DiscardInBuffer();
-            _serial.DiscardOutBuffer();
-            _serial.BaseStream.Flush();
-            
-            SetStreaming(_serial, 1); // This sends a serial command to start streaming
+            // Try to open serial port
+            // If it fails just ignore it
+            try
+            {
+                _serial.Open();
+                _serial.DiscardInBuffer();
+                _serial.DiscardOutBuffer();
+                _serial.BaseStream.Flush();
+                
+                SetStreaming(_serial, 1); // This sends a serial command to start streaming
 
-            _thread = new Thread(ThreadFunction);
-            _thread.Start();
+                _thread = new Thread(ThreadFunction);
+                _thread.Start();
+            }
+            catch
+            {
+                Debug.Log("PixartRedaer: " + comPort + " is not available");
+            }
 
             return true;
         }
