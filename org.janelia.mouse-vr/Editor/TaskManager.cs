@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 
@@ -7,18 +8,30 @@ namespace Janelia
 {
     public class TaskManager : EditorWindow
     {
-        // Task parameters
-        string animalName = "", taskType = "", notes = "";
+        // Parameters
+        string notes = "";
+
+        // Animal
+        string[] animalList;
+        int animalIndex = 0;
+        string animalListFile = Path.Join(Application.dataPath, "animalList.csv");
+
+        // Task
+        string[] taskList;
+        int taskIndex = 0;
+        string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
+
         string comPortPixArt = "COM3";
         string comPortReward = "COM4";
         int nTrial = 100, rewardAmountUl = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
-        bool followPath = false;
+        // bool followPath = false;
         bool reverseDirection = false;
         bool logTreadmill = true;
+        bool enableKeyboard = false;
         float maxRotationSpeed = 360.0f;
-        float pathRotationMix = 0.2f;
+        // float pathRotationMix = 0.2f;
         float pitchScale = 0.9f;
         float rollScale = 0.0f;
         float yawScale = 0.0f;
@@ -52,9 +65,35 @@ namespace Janelia
             EditorGUILayout.Space(20);
 
             // Setup task parameters here
+            if (!File.Exists(animalListFile))
+            {
+                using (StreamWriter file = new StreamWriter(animalListFile))
+                {
+                    file.Write("ANM001,ANM002");
+                }
+            }
+            using (StreamReader reader = File.OpenText(animalListFile))
+            {
+                string line = reader.ReadLine();
+                animalList = line.Split(',');
+            }
+
+            if (!File.Exists(taskListFile))
+            {
+                using (StreamWriter file = new StreamWriter(taskListFile))
+                {
+                    file.Write("avoidance,gonogo");
+                }
+            }
+            using (StreamReader reader = File.OpenText(taskListFile))
+            {
+                string line = reader.ReadLine();
+                taskList = line.Split(',');
+            }
+
             GUILayout.Label("Task parameters", EditorStyles.boldLabel);
-            animalName = EditorGUILayout.TextField("Animal name", animalName);
-            taskType = EditorGUILayout.TextField("Task type", taskType);
+            animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
+            taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
             comPortReward = EditorGUILayout.TextField("COM Port Reward", comPortReward);
@@ -70,12 +109,13 @@ namespace Janelia
             EditorGUILayout.Space(20);
 
             GUILayout.Label("Ball parameters", EditorStyles.boldLabel);
-            followPath = EditorGUILayout.Toggle("Follow path", followPath);
             reverseDirection = EditorGUILayout.Toggle("Reverse direction", reverseDirection);
             allowRotationRoll = EditorGUILayout.Toggle("Allow rotation by roll", allowRotationRoll);
             allowRotationYaw = EditorGUILayout.Toggle("Allow rotation by yaw", allowRotationYaw);
             maxRotationSpeed = EditorGUILayout.FloatField("Max rotation speed (degree/s)", maxRotationSpeed);
-            pathRotationMix = EditorGUILayout.FloatField("Ratio btw auto and manual rotation", pathRotationMix);
+            // followPath = EditorGUILayout.Toggle("Follow path", followPath);
+            // pathRotationMix = EditorGUILayout.FloatField("Ratio btw auto and manual rotation", pathRotationMix);
+            enableKeyboard = EditorGUILayout.Toggle("Enable Keyboard", enableKeyboard);
             logTreadmill = EditorGUILayout.Toggle("Log treadmill", logTreadmill);
             pitchScale = EditorGUILayout.FloatField("Pitch scale (degree/pixel)", pitchScale);
             rollScale = EditorGUILayout.FloatField("Roll scale (degree/pixel)", rollScale);
@@ -127,8 +167,8 @@ namespace Janelia
             if (taskController == null)
                 taskController = player.AddComponent<TaskController>();
 
-            taskController.animalName = animalName;
-            taskController.task = taskType;
+            taskController.animalName = animalList[animalIndex];
+            taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
             taskController.note = notes;
 
@@ -151,7 +191,7 @@ namespace Janelia
             if (mainLight == null)
                 mainLight = new GameObject("Directional Light");
             mainLight.transform.SetParent(player.transform);
-            mainLight.transform.localPosition = new Vector3(0, 50, -3);
+            mainLight.transform.localPosition = new Vector3(0, 1, -1);
             mainLight.transform.localRotation = Quaternion.Euler(90, 0, 0);
             mainLight.transform.localScale = new Vector3(1, 1, 1);
 
@@ -164,7 +204,7 @@ namespace Janelia
                 light = mainLight.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = Color.white;
-            light.range = 200;
+            light.range = 400;
             light.shadows = LightShadows.None;
 
             // Environment
@@ -178,8 +218,8 @@ namespace Janelia
                 environment.AddComponent<EnvironmentController>();
 
             // Camera for multi-screen
-            if (GameObject.Find("MouseCamera3") == null)
-                SetupCamerasNGon.ShowWindow();
+            // if (GameObject.Find("MouseCamera3") == null)
+            SetupCamerasNGon.ShowWindow();
 
             Debug.Log("Setup done!");
         }
@@ -189,8 +229,8 @@ namespace Janelia
             player = GameObject.Find("Player");
 
             taskController = player.GetComponent<TaskController>();
-            taskController.animalName = animalName;
-            taskController.task = taskType;
+            taskController.animalName = animalList[animalIndex];
+            taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
             taskController.note = notes;
             taskController.comPort = comPortReward;
@@ -200,8 +240,9 @@ namespace Janelia
             playerController.allowRotationRoll = allowRotationRoll;
             playerController.reverseDirection = reverseDirection;
             playerController.maxRotationSpeed = maxRotationSpeed;
-            playerController.pathRotationMix = pathRotationMix;
-            playerController.followPath = followPath;
+            playerController.enableKeyboard = enableKeyboard;
+            // playerController.pathRotationMix = pathRotationMix;
+            // playerController.followPath = followPath;
             playerController.logTreadmill = logTreadmill;
             playerController.pitchScale = pitchScale;
             playerController.rollScale = rollScale;
@@ -220,6 +261,9 @@ namespace Janelia
         {
             Vr.BlankDisplay(false);
             Vr.Connect(true);
+
+            taskController = player.GetComponent<TaskController>();
+            taskController.iState = TaskController.States.Start;
         }
 
         private void Stop()

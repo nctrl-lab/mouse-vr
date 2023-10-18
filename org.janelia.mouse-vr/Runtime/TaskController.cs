@@ -2,6 +2,7 @@ using System;
 using System.IO.Ports;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,9 +24,12 @@ namespace Janelia
         public int nTrial, iTrial, iCorrect, iReward, rewardAmountUl;
         public States iState;
         public Choices iTarget, iChoice;
+        public float delayDuration;
+        public float punishmentLatency = 2.0f;
+        public float punishmentDuration = 6.0f;
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
-        public string comPort = "COM5";
+        public string comPort = "COM4";
         public SerialPort serial;
 
         // Socket communication
@@ -44,8 +48,14 @@ namespace Janelia
         // Task states
         public enum States
         {
-            Choice = 0, // start of the trial, animal has to choose one side (left or right)
-            Reward = 1 // conclusion of the trial, animal has chosen the side and got the reward (or not)
+            Standby = 0,
+            Start = 1, // start of the trial, used only once
+            Delay = 2,
+            Cue = 3,
+            Success = 4, // automatically goes back to delay
+            Failure = 5, // automatically goes back to delay
+            FailureEnd = 6,
+            Other = 7
         }
 
         public enum Choices
@@ -83,61 +93,11 @@ namespace Janelia
             vr.Start(); // This gets the list of object that needs to be controlled during task.
         }
 
-
-        // Task logic start here,
-        // when the player (animal) hits the objects with a specific naming (_objectname_r_)
-        private void OnTriggerEnter(Collider other)
-        {
-            string[] subnames = other.name.Trim('_').Split('_');
-            if (subnames.Length==2 && subnames[1].Contains('r'))
-            {
-                note = other.name;
-
-                AlternationTask(subnames[0]); // add or replace task here
-            }
-        }
-
-
-        ///////// Task logic //////////
-        private void AlternationTask(string e)
-        {
-            if (iState == States.Choice) // 'trial start'
-            {
-                if (e.StartsWith("l") || e.StartsWith("r")) // chosen the door
-                {
-                    iState = States.Reward; // move to 'trial end'
-                    iChoice = (e.StartsWith("l")) ? Choices.Left : Choices.Right;
-                    if (iTarget == Choices.None || iTarget == iChoice)
-                    {
-                        // Give reward if the chosen side and the target side match
-                        iCorrect++;
-                        iReward += rewardAmountUl;
-                        Reward();
-                    }
-                    LogTrial(); // Log trial information at every state change
-                }
-            }
-            else if (iState == States.Reward)
-            {
-                if (e.StartsWith("e")) // 'trial end'
-                {
-                    iState = States.Choice; // move to 'trial start'
-                    iTarget = (iChoice==Choices.Left) ? Choices.Right : Choices.Left; // Alternation
-                    LogTrial(); // Log trial information at every state change
-                    PrintLog(); // Print on console terminal
-
-                    vr.Teleport("10"); // To the starting position for the next trial
-                    iTrial++;
-
-                    // Finishing task condition
-                    if (iTrial >= nTrial)
-                        Quit();
-                }
-            }
-        }
-
         private void Update()
         {
+            if (iState == States.Start && task == "avoidance")
+                StartAvoidanceTask();
+
             // Reads messages from socket connection
             while (socket.Take(ref socketBuffer, ref socketTimestampMs))
             {
@@ -156,6 +116,193 @@ namespace Janelia
                 }
             }
         }
+
+        // Task logic start here,
+        // when the player (animal) hits the objects with a specific naming (_objectname_r_)
+        private void OnTriggerEnter(Collider other)
+        {
+            string[] subnames = other.name.Trim('_').Split('_');
+            if (subnames.Length==2 && subnames[1].Contains('r'))
+            {
+                note = other.name;
+
+                if (task == "alternation")
+                    AlternationTask(subnames[0]); // add or replace task here
+                else if (task == "avoidance")
+                    AvoidanceTask(subnames[0]);
+            }
+        }
+
+        ///////// Task logic //////////
+        private void AlternationTask(string e)
+        {
+            if (iState == States.Start) // 'trial start'
+            {
+                if (e.StartsWith("l") || e.StartsWith("r")) // chosen the door
+                {
+                    iChoice = (e.StartsWith("l")) ? Choices.Left : Choices.Right;
+                    if (iTarget == Choices.None || iTarget == iChoice)
+                    {
+                        // Give reward if the chosen side and the target side match
+                        iState = States.Success;
+                        iCorrect++;
+                        iReward += rewardAmountUl;
+                        Reward();
+                    }
+                    else
+                    {
+                        iState = States.Failure;
+                    }
+                    LogTrial(); // Log trial information at every state change
+                }
+            }
+            else
+            {
+                if (e.StartsWith("e")) // 'trial end'
+                {
+                    iState = States.Start; // move to 'trial start'
+                    iTarget = (iChoice==Choices.Left) ? Choices.Right : Choices.Left; // Alternation
+                    LogTrial(); // Log trial information at every state change
+                    PrintLog(); // Print on console terminal
+
+                    vr.Teleport("10"); // To the starting position for the next trial
+                    iTrial++;
+
+                    // Finishing task condition
+                    if (iTrial >= nTrial)
+                        Quit();
+                }
+            }
+        }
+
+
+        private void AvoidanceTask(string e)
+        {
+            // Delay
+            // Cue
+            // --> Success --> Outcome
+            // --> Fail --> Air puff / Failure
+            // --> End of hallway (or automatic restart?) --> Outcome
+
+            if (e.StartsWith("target"))
+            {
+                if (iState == States.Cue)
+                {
+                    iState = States.Success;
+                    iCorrect++;
+                }
+                else
+                {
+                    iState = States.Other;
+                }
+                CueOff();
+                PunishmentOff();
+                LogTrial();
+                PrintLog();
+                StartAvoidanceTask();
+            }
+            else if (e.StartsWith("end"))
+            {
+                // Stop current trial and restart
+                CueOff();
+                PunishmentOff();
+                StartAvoidanceTask();
+                vr.Teleport("0");
+            }
+        }
+
+        // Avoidance task related functions
+        private void StartAvoidanceTask()
+        {
+            iState = States.Delay;
+            iTrial++;
+            LogTrial();
+            Invoke("CueOn", GetDelay());
+        }
+
+        private float GetDelay()
+        {
+            var rand = new System.Random();
+            double r = rand.NextDouble();
+            if (r == 0) r = Single.MinValue;
+            delayDuration = (float) Math.Min(10 - 10 * Math.Log(r), 20);
+            Debug.Log("Delay duration: " + delayDuration + " s");
+            return delayDuration;
+        }
+
+        private void CueOn()
+        {
+            iState = States.Cue;
+            Invoke("CheckSuccess", punishmentLatency);
+            Invoke("CheckFailure", punishmentDuration);
+            Vector3 curpos = vr.GetPosition();
+            vr.Move("cue", new Vector3(0f, 0f, curpos.z));
+            LogTrial();
+        }
+
+        private void CueOff()
+        {
+            vr.Move("cue", new Vector3(0f, -2f, 0f));
+        }
+
+        public void Reset()
+        {
+            iState = States.Standby;
+            iTrial = 0;
+            iCorrect = 0;
+            iTarget = Choices.None;
+            iChoice = Choices.None;
+            iReward = 0;
+            note = "";
+        }
+
+        public void Reward()
+        {
+            if (_isOpen)
+            {
+                // Send message to Teensy to give the reward
+                serial.Write("r");
+            }
+        }
+
+        public void PunishmentOn()
+        {
+            if (_isOpen)
+            {
+                serial.Write("p");
+            }
+        }
+
+        public void PunishmentOff()
+        {
+            if (_isOpen)
+            {
+                serial.Write("0");
+            }
+        }
+        public void CheckSuccess()
+        {
+            if (iState == States.Cue)
+            {
+                iState = States.Failure;
+                PunishmentOn();
+                LogTrial();
+            }
+        }
+
+        public void CheckFailure()
+        {
+            if (iState == States.Failure)
+            {
+                iState = States.FailureEnd;
+                CueOff();
+                PunishmentOff();
+                LogTrial();
+                PrintLog();
+                StartAvoidanceTask();
+            }
+        }
+
 
         private void JovianToVr(string cmd)
         {
@@ -281,25 +428,6 @@ namespace Janelia
             UnityEditor.EditorApplication.isPlaying = false;
         }
 
-        public void Reset()
-        {
-            iState = 0;
-            iTrial = 0;
-            iCorrect = 0;
-            iTarget = Choices.None;
-            iChoice = Choices.None;
-            iReward = 0;
-            note = "";
-        }
-
-        public void Reward()
-        {
-            if (_isOpen)
-            {
-                // Send message to Teensy to give the reward
-                serial.Write("r");
-            }
-        }
 
         private void LogTrial()
         {
