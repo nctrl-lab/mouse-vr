@@ -24,9 +24,13 @@ namespace Janelia
         public int nTrial, iTrial, iCorrect, iReward, rewardAmountUl;
         public States iState;
         public Choices iTarget, iChoice;
-        public float delayDuration;
-        public float punishmentLatency = 2.0f;
-        public float punishmentDuration = 6.0f;
+        private float delayDuration;
+        public float delayDurationStart = 10f;
+        public float delayDurationMean = 30f;
+        public float delayDurationEnd = 50f;
+        public float punishmentLatency = 1.5f;
+        public float punishmentDuration = 0f; // infinite if zero
+        public float punishmentLength = 10f;
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
         public string comPort = "COM4";
@@ -216,6 +220,7 @@ namespace Janelia
         {
             iState = States.Delay;
             iTrial++;
+            note = "delay";
             LogTrial();
             Invoke("CueOn", GetDelay());
         }
@@ -225,7 +230,7 @@ namespace Janelia
             var rand = new System.Random();
             double r = rand.NextDouble();
             if (r == 0) r = Single.MinValue;
-            delayDuration = (float) Math.Min(10 - 10 * Math.Log(r), 20);
+            delayDuration = (float) Math.Min(delayDurationStart - (delayDurationMean-delayDurationStart) * Math.Log(r), delayDurationEnd);
             Debug.Log("Delay duration: " + delayDuration + " s");
             return delayDuration;
         }
@@ -233,10 +238,12 @@ namespace Janelia
         private void CueOn()
         {
             iState = States.Cue;
+            note = "cue";
             Invoke("CheckSuccess", punishmentLatency);
-            Invoke("CheckFailure", punishmentDuration);
+            if (punishmentDuration > 0)
+                Invoke("CheckFailure", punishmentDuration);
             Vector3 curpos = vr.GetPosition();
-            vr.Move("cue", new Vector3(0f, 0f, curpos.z));
+            vr.Move("cue", new Vector3(0f, 0f, curpos.z-4.5f+punishmentLength/10));
             LogTrial();
         }
 
@@ -415,6 +422,7 @@ namespace Janelia
 
         private void OnDisable()
         {
+            PunishmentOff();
             if (_isOpen)
             {
                 serial.Close();
@@ -437,6 +445,7 @@ namespace Janelia
             taskLog.iTarget = iTarget;
             taskLog.iChoice = iChoice;
             taskLog.iReward = iReward;
+            taskLog.delayDuration = delayDuration;
             taskLog.note = note;
             Logger.Log(taskLog);
         }
@@ -452,6 +461,12 @@ namespace Janelia
             taskParametersLog.task = task;
             taskParametersLog.nTrial = nTrial;
             taskParametersLog.rewardAmountUl = rewardAmountUl;
+            taskParametersLog.delayDurationStart = delayDurationStart;
+            taskParametersLog.delayDurationMean = delayDurationMean;
+            taskParametersLog.delayDurationEnd = delayDurationEnd;
+            taskParametersLog.punishmentLatency = punishmentLatency;
+            taskParametersLog.punishmentDuration = punishmentDuration;
+            taskParametersLog.punishmentLength = punishmentLength;
             taskParametersLog.note = note;
             Logger.Log(taskParametersLog);
         }
@@ -466,6 +481,7 @@ namespace Janelia
             public Choices iTarget; // 1: left, 2: right
             public Choices iChoice; // 1: left, 2: right
             public int iReward; // total reward amount in uL 
+            public float delayDuration;
             public string note;
         }; private TaskLog taskLog = new TaskLog();
 
@@ -477,6 +493,12 @@ namespace Janelia
             public string task;
             public int nTrial;
             public int rewardAmountUl; // reward amount per trial
+            public float delayDurationStart;
+            public float delayDurationMean;
+            public float delayDurationEnd;
+            public float punishmentLatency;
+            public float punishmentDuration; // infinite if zero
+            public float punishmentLength;
             public string note;
         }; private TaskParametersLog taskParametersLog = new TaskParametersLog();
 

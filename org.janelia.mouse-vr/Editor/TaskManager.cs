@@ -21,6 +21,13 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
+        float delayDurationStart = 10f;
+        float delayDurationMean = 30f;
+        float delayDurationEnd = 50f;
+        float punishmentLatency = 1.5f;
+        float punishmentDuration = 0f;
+        float punishmentLength = 10f;
+
         string comPortPixArt = "COM3";
         string comPortReward = "COM4";
         int nTrial = 100, rewardAmountUl = 10;
@@ -95,7 +102,14 @@ namespace Janelia
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
             taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
+            delayDurationStart = EditorGUILayout.FloatField("Delay duration min", delayDurationStart);
+            delayDurationMean = EditorGUILayout.FloatField("Delay duration mean", delayDurationMean);
+            delayDurationEnd = EditorGUILayout.FloatField("Delay duration max", delayDurationEnd);
+            punishmentLatency = EditorGUILayout.FloatField("Air puff latency", punishmentLatency);
+            punishmentDuration = EditorGUILayout.FloatField("Air puff duration", punishmentDuration);
+            punishmentLength = EditorGUILayout.FloatField("Cue length", punishmentLength);
             rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
+
             comPortReward = EditorGUILayout.TextField("COM Port Reward", comPortReward);
             comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
 
@@ -170,6 +184,12 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.delayDurationStart = delayDurationStart;
+            taskController.delayDurationMean = delayDurationMean;
+            taskController.delayDurationEnd = delayDurationEnd;
+            taskController.punishmentLatency = punishmentLatency;
+            taskController.punishmentDuration = punishmentDuration;
+            taskController.punishmentLength = punishmentLength;
             taskController.note = notes;
 
             // Player camera
