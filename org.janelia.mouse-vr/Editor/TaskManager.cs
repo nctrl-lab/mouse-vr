@@ -29,7 +29,7 @@ namespace Janelia
         float punishmentLength = 10f;
 
         string comPortPixArt = "COM3";
-        string comPortReward = "COM4";
+        string comPortReward = "COM6";
         int nTrial = 100, rewardAmountUl = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
@@ -39,7 +39,7 @@ namespace Janelia
         bool enableKeyboard = false;
         float maxRotationSpeed = 360.0f;
         // float pathRotationMix = 0.2f;
-        float pitchScale = 0.9f;
+        float pitchScale = 0.3515625f;
         float rollScale = 0.0f;
         float yawScale = 0.0f;
         float forwardMultiplier = 1f;
@@ -252,6 +252,12 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.delayDurationStart = delayDurationStart;
+            taskController.delayDurationMean = delayDurationMean;
+            taskController.delayDurationEnd = delayDurationEnd;
+            taskController.punishmentLatency = punishmentLatency;
+            taskController.punishmentDuration = punishmentDuration;
+            taskController.punishmentLength = punishmentLength;
             taskController.note = notes;
             taskController.comPort = comPortReward;
 

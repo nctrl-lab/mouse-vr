@@ -234,6 +234,36 @@ namespace Janelia
             }
         }
 
+        // Go/No-Go task logic
+        // Trial start:
+        //  - Teleport to starting point
+        //  - Place cue at certain distance (TODO: should it be hidden until very close???)
+        // Trial cue:
+        //  - Enter target area
+        //  - Start timer to check velocity
+        // Trial success:
+        //  - Reward is givin
+        // Trial fail:
+        //  - Timer is stopped
+        //  - No reward given
+        // * Cue: has start/fail/teloport bar
+        private void StartGonogoTask()
+        {
+            if (iState == States.Start || iState == States.Other) {
+                    iState = States.Cue;
+                    CueOff();
+                    PunishmentOff();
+                    iState = States.Start;
+                    vr.Teleport("0");
+                    iTrial++;
+
+                    // Finishing task condition
+                    if (iTrial > nTrial)
+                        Quit();
+                }
+            }
+        }
+
         private float GetDelay()
         {
             var rand = new System.Random();
@@ -246,21 +276,29 @@ namespace Janelia
 
         private void CueOn()
         {
-            if (iState == States.Delay) {
-                iState = States.Cue;
-                note = "cue";
-                Invoke("CheckSuccess", punishmentLatency);
-                if (punishmentDuration > 0)
-                    Invoke("CheckFailure", punishmentDuration);
-                Vector3 curpos = vr.GetPosition();
-                vr.Move("cue", new Vector3(0f, 0f, curpos.z-4.5f+punishmentLength/10));
-                LogTrial();
+            if (task == 'avoidance') {
+                if (iState == States.Delay) {
+                    iState = States.Cue;
+                    note = "cue";
+                    Invoke("CheckSuccess", punishmentLatency);
+                    if (punishmentDuration > 0)
+                        Invoke("CheckFailure", punishmentDuration);
+                    Vector3 curpos = vr.GetPosition();
+                    vr.Move("cue", new Vector3(0f, 0f, curpos.z-4.5f+punishmentLength/10));
+                    LogTrial();
+                }
+            }
+            else if (task == 'gonogo') {
+
             }
         }
 
         private void CueOff()
         {
-            vr.Move("cue", new Vector3(0f, -2f, 0f));
+            if (task == 'avoidance')
+                vr.Move("cue_a", new Vector3(0f, -2f, 0f));
+            else if (task == 'gonogo')
+                vr.Move("cue_g", new Vector3(0f, -2f, 0f));
         }
 
         public void Reset()
