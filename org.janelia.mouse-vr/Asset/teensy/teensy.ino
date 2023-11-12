@@ -10,12 +10,15 @@ unsigned long startTime = 0;
 #define AIROFF 2
 #define DONE 3
 int state = STANDBY;
-const int outputPin = 0;
+const int airPin = 0;
+const int waterPin = 1;
 
 void setup() {
     Serial.begin(115200);
-    pinMode(outputPin, OUTPUT);
-    digitalWriteFast(outputPin, LOW);
+    pinMode(airPin, OUTPUT);
+    pinMode(waterPin, OUTPUT);
+    digitalWriteFast(airPin, LOW);
+    digitalWriteFast(waterPin, HIGH); // high state is the off state for syringe pump
 }
 
 void loop() {
@@ -30,17 +33,22 @@ void checkSerial() {
     	
     	if (cmd == 'p'){
             if(state == STANDBY  || state == DONE) {
-               Serial.println("Go");
                state = AIRON;
                startTime = now;
                targetTime = now;
-               digitalWriteFast(outputPin, HIGH);
+               digitalWriteFast(airPin, HIGH);
+               Serial.println("Air start");
             }
         }
+    	else if (cmd == 'r'){
+               digitalWriteFast(waterPin, LOW);
+               Serial.println("Water start");
+        }
         else if (cmd == '0'){
-            Serial.println("Done");
             state = STANDBY;
-            digitalWriteFast(outputPin, LOW);            
+            digitalWriteFast(airPin, LOW);
+            digitalWriteFast(waterPin, HIGH);
+            Serial.println("Done");
         }
     }
 }
@@ -49,12 +57,12 @@ void checkAir() {
     if (state == AIRON) {
         if (finishDuration > 0 && now - finishDuration >= startTime) {
     	    state = DONE;
-    	    digitalWriteFast(outputPin, LOW);
+    	    digitalWriteFast(airPin, LOW);
     	}    	
         else if (now - airDuration >= targetTime) {
             state = AIROFF;
             targetTime = now;
-            digitalWriteFast(outputPin, LOW);
+            digitalWriteFast(airPin, LOW);
         }
 
     }
@@ -62,7 +70,7 @@ void checkAir() {
         if (now - intervalDuration >= targetTime) {
             state = AIRON;
             targetTime = now;
-            digitalWrite(outputPin, HIGH);
+            digitalWrite(airPin, HIGH);
         }
     }
 }
