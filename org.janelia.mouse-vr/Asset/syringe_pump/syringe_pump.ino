@@ -107,7 +107,7 @@ void pumpSingly(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume);
 void pumpContinuously();
 uint8_t pump(uint32_t flowrate, uint32_t volume);
 
-enum listOfStates {STANDBY, INFUSING, FINISHED};
+enum listOfStates {STANDBY, INFUSING};
 int inputState = STANDBY;
 
 
@@ -116,6 +116,7 @@ int inputState = STANDBY;
 ********************************************************************/
 void setup()
 {
+  Serial.begin(115200);
   lcd.begin(16, 2);
 
   pinMode(STEP_PIN, OUTPUT);
@@ -215,22 +216,56 @@ void loop()
     else if (nextItem == FIRMWAREINFO) printFirmwareInfo();
   }
 
-  checkInput();
-
+  checkSerial();
 }
 
 
 // check external input by pin 11
-void checkInput()
+void checkSerial()
 {
-  if (inputState == STANDBY && digitalRead(INPUT_PIN) == 0)
+  if (Serial.available())
   {
-    inputState = INFUSING;
-    infuseVolume();
-  }
-  else if (inputState == FINISHED && digitalRead(INPUT_PIN) == 1)
-  {
-    inputState = STANDBY;
+    char cmd = Serial.read();
+
+    // command list
+    // i: start injection
+    // v: set volume in ul
+    // f: set flow rate in ul/s
+    // r: refill
+    if (inputState == STANDBY)
+    {
+      if (cmd == 'i')
+      {
+        inputState = INFUSING;
+        uint32_t flowrate = items[29].value;
+        uint32_t volume = items[15].value;
+        pumpSingly(1, flowrate, volume);
+      }
+      else if (cmd == 'v')
+      {
+        uint32_t volume = (uint32_t)Serial.parseInt();
+        if (volume >= 100 && volume <= 50000000)
+        {
+          items[15].value = volume;
+          Serial.print("Volume (ul): ");
+          Serial.println(volume);
+        }
+      }
+      else if (cmd == 'f')
+      {
+        uint32_t flowrate = (uint32_t)Serial.parseInt();
+        if (flowrate >= 10 && flowrate <= 60000000)
+        {
+          items[29].value = flowrate;
+          Serial.print("Flowrate (ul/min): ");
+          Serial.println(flowrate);
+        }
+      }
+      else if (cmd == 'r')
+      {
+        pumpSingly(-1, items[17].value, 4294000000);
+      }
+    }
   }
 }
 
@@ -385,7 +420,7 @@ void calculateActualValue(uint8_t itemNo)
     else multiplier = 937500;
     float tempFloat = multiplier / ustepsPERmin;
     uint16_t countsPERustepActual = (uint16_t)(tempFloat + 0.5);
-    tempFloat = multiplier / (float)countsPERsutepActual;
+    tempFloat = multiplier / (float)countsPERustepActual;
     tempFloat /= (float)(coef * NOFMICROSTEPS);
     items[itemNo].value = (uint32_t)tempFloat;
   }
@@ -857,6 +892,7 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
     if (INVERTDIRECTION == true) digitalWrite(DIRECTION_PIN, LOW);
     else digitalWrite(DIRECTION_PIN, HIGH);
     lcd.print(F(" >> INFUSING >> "));
+    Serial.println("Infusing");
   }
   else
   {
@@ -864,6 +900,7 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
     if (INVERTDIRECTION == true) digitalWrite(DIRECTION_PIN, HIGH);
     else digitalWrite(DIRECTION_PIN, LOW);
     lcd.print(F(" << REFILLING <<"));
+    Serial.println("Refilling");
   }
   lcd.setCursor(0, 1);
   printTimeAndVolume(0, 0);
@@ -931,12 +968,6 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
       }
     }
 
-    if (inputState == INFUSING && digitalRead(INPUT_PIN) == 1) {
-        inputState = STANDBY;
-        TIMSK1 &= ~( 1 << OCIE1A);
-        isManualStop = true;
-    }
-
     // print volume every second
     if (nextMillis <= millis())
     {
@@ -962,21 +993,23 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
   if (isManualStop)
   {
     lcd.print(F("  MANUAL STOP   "));
+    Serial.println("Manual stop");
     return 2;
   }
   if (ustepCounterLimit == ustepCounter - 1)
   {
     lcd.print(F("    FINISHED    "));
+    Serial.println("Finished");
     return 0;
   }
   else
   {
     lcd.print(F("UNEXPECTED STOP "));
+    Serial.println("Unexpected stop");
     return 1;
   }
 
-  if (inputState == INFUSING)
-    inputState = FINISHED;
+  inputState = STANDBY;
 
 }
 
