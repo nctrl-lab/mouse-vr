@@ -184,7 +184,10 @@ void setup()
 
   recalculateSyringe(LINK2DIA);
   //beep();
-  showScreensaver();
+  //showScreensaver();
+  currentItem = 1;
+  printScreen();
+  Serial.println("Ready");
 }
 
 
@@ -223,7 +226,7 @@ void loop()
 // check external input by pin 11
 void checkSerial()
 {
-  if (Serial.available())
+  if (Serial.available() > 0)
   {
     char cmd = Serial.read();
 
@@ -246,9 +249,16 @@ void checkSerial()
         uint32_t volume = (uint32_t)Serial.parseInt();
         if (volume >= 100 && volume <= 50000000)
         {
-          items[15].value = volume;
+          setValueRaw(15, volume);
+          Serial.print("Volume: ");
+          Serial.print(items[15].value);
+          Serial.println(" ul");
+        }
+        else
+        {
           Serial.print("Volume (ul): ");
-          Serial.println(volume);
+          Serial.print(items[15].value);
+          Serial.println(" ul (not updated)");
         }
       }
       else if (cmd == 'f')
@@ -256,14 +266,25 @@ void checkSerial()
         uint32_t flowrate = (uint32_t)Serial.parseInt();
         if (flowrate >= 10 && flowrate <= 60000000)
         {
-          items[29].value = flowrate;
-          Serial.print("Flowrate (ul/min): ");
-          Serial.println(flowrate);
+          setValueRaw(29, flowrate);
+          Serial.print("Flow rate: ");
+          Serial.print(items[29].value);
+          Serial.println(" ul/min");
+        }
+        else
+        {
+          Serial.print("Flow rate: ");
+          Serial.print(items[29].value);
+          Serial.println(" ul/min (not updated)");
         }
       }
       else if (cmd == 'r')
       {
         pumpSingly(-1, items[17].value, 4294000000);
+      }
+      else if (cmd == 'h' || cmd == '?')
+      {
+        Serial.println("== Command list ==\ni: start injection\nv: set volume in ul\nf: set flow rate in ul\nr: refill");
       }
     }
   }
@@ -386,6 +407,20 @@ void setValue(uint8_t itemNo, uint8_t digits[8])
   else writeToEEPROM(itemNo);
 }
 
+void setValueRaw(uint8_t itemNo, uint32_t value)
+{
+  uint16_t divider = valueDivider(items[itemNo].type);
+  if (4294000000 / divider < value) items[itemNo].value = 4294000000;
+  else items[itemNo].value = value * divider;
+
+  if (itemNo == LINK2LPV || itemNo == LINK2DIA)
+  {
+    recalculateSyringe(itemNo);
+    writeToEEPROM(LINK2LPV);
+    writeToEEPROM(LINK2DIA);
+  }
+  else writeToEEPROM(itemNo);
+}
 
 
 /********************************************************************
@@ -713,8 +748,16 @@ bool checkEndstop(int8_t pumpingDirection)
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    if (pumpingDirection > 0) lcd.print(F("SYRINGE IS EMPTY"));
-    else if (pumpingDirection < 0) lcd.print(F("SYRINGE IS FULL"));
+    if (pumpingDirection > 0)
+    {
+      lcd.print(F("SYRINGE IS EMPTY"));
+      Serial.println("Syringe is empty");
+    }
+    else if (pumpingDirection < 0)
+    {
+      lcd.print(F("SYRINGE IS FULL"));
+      Serial.println("Syringe is full");
+    }
     //beep(300);
     waitingForButton(LEFT, 1);
     return false;
@@ -833,7 +876,9 @@ void pumpSingly(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
   {
     pump(pumpingDirection, flowrate, volume);
     //beep(300);
-    waitingForButton(LEFT, 1);
+    //waitingForButton(LEFT, 1);
+    currentItem = 1;
+    printScreen();
   }
 }
 
@@ -987,7 +1032,7 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
   lcd.setCursor(0, 1);
   pumpingVolume = (uint32_t)(((float)ustepCounter / coef2) + 0.5);
   printTimeAndVolume(pumpingTime, pumpingVolume);
-
+  inputState = STANDBY;
 
   lcd.setCursor(0, 0);
   if (isManualStop)
@@ -1008,9 +1053,6 @@ uint8_t pump(int8_t pumpingDirection, uint32_t flowrate, uint32_t volume)
     Serial.println("Unexpected stop");
     return 1;
   }
-
-  inputState = STANDBY;
-
 }
 
 

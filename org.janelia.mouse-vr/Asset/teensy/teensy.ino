@@ -16,7 +16,6 @@ const int airPin = 0;
 void setup() {
     Serial.begin(115200);
     pinMode(airPin, OUTPUT);
-    pinMode(waterPin, OUTPUT);
     digitalWriteFast(airPin, LOW);
 }
 
@@ -60,7 +59,7 @@ void checkAir() {
         }
 
     }
-    else if (state == OFF) {
+    else if (airState == OFF) {
         if (now - intervalDuration >= targetTime) {
             airState = ON;
             targetTime = now;
