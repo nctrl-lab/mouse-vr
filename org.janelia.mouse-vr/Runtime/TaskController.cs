@@ -23,18 +23,21 @@ namespace Janelia
         // Task-related variables
         public int nTrial, iTrial, iCorrect, iReward, rewardAmountUl;
         public States iState;
-        public Choices iTarget, iChoice;
+        public Choices iCue, iChoice;
         private float delayDuration;
-        public float delayDurationStart = 10f;
-        public float delayDurationMean = 30f;
-        public float delayDurationEnd = 50f;
+        public float delayDurationStart = 30f;
+        public float delayDurationMean = 60f;
+        public float delayDurationEnd = 120f;
+        public float rewardLatency = 0.0f;
         public float punishmentLatency = 1.5f;
         public float punishmentDuration = 0f; // infinite if zero
         public float punishmentLength = 10f;
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
-        public string comPort = "COM4";
-        public SerialPort serial;
+        public string comPortAir = "COM6";
+        public string comPortWater = "COM9";
+        public SerialPort serialAir;
+        public SerialPort serialWater;
 
         // Socket communication
         public int socketPort = 22223;
@@ -55,11 +58,17 @@ namespace Janelia
             Standby = 0,
             Start = 1, // start of the trial, used only once
             Delay = 2,
-            Cue = 3,
+            Choice = 3,
             Success = 4, // automatically goes back to delay
             Failure = 5, // automatically goes back to delay
-            FailureEnd = 6,
-            Other = 7
+            Other = 6
+        }
+
+        public enum Cues
+        {
+            None = 0,
+            Nogo = 1,
+            Go = 2
         }
 
         public enum Choices
@@ -71,23 +80,38 @@ namespace Janelia
 
         private void Start()
         {
-            // Try to open serial port
-            // If it fails just ignore it
-            serial = new SerialPort(comPort, 115200);
+
+            // Serial: air puff
+            serialAir = new SerialPort(comPortAir, 115200);
             try
             {
-                serial.Open();
-                if (serial.IsOpen)
+                serialAir.Open();
+                if (serialAir.IsOpen)
                 {
-                    _isOpen = true;
+                    _isOpenAir = true;
                 }
             }
             catch
             {
-                Debug.Log(comPort + " is not available");
+                Debug.Log(serialAir + " is not available");
             }
 
-            // Try to open socket
+            // Serial: water reward
+            serialWater = new SerialPort(comPortWater, 115200);
+            try
+            {
+                serialWater.Open();
+                if (serialWater.IsOpen)
+                {
+                    _isOpenWater = true;
+                }
+            }
+            catch
+            {
+                Debug.Log(serialWater + " is not available");
+            }
+
+            // Try to open socket for external communication
             socket = new SocketReader("", socketPort);
             socket.Start();
 
@@ -101,11 +125,14 @@ namespace Janelia
         {
             if (iState == States.Start)
             {
-                if (task == "avoidance")
-                    StartAvoidanceTask();
-                else if (task == "gonogo")
-                    StartGonogoTask();
-
+                try {
+                    note = "start";
+                    Invoke(task, 0f);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("Update Error: " + e);
+                }
             }
 
             // Reads messages from socket connection
@@ -127,91 +154,56 @@ namespace Janelia
             }
         }
 
-        // Task logic start here,
-        // when the player (animal) hits the objects with a specific naming (_objectname_r_)
+        // When the player (animal) hits the objects with a specific naming (_objectname_r_)
         private void OnTriggerEnter(Collider other)
         {
             string[] subnames = other.name.Trim('_').Split('_');
             if (subnames.Length==2 && subnames[1].Contains('r'))
             {
-                note = other.name;
-
-                if (task == "alternation")
-                    AlternationTask(subnames[0]); // add or replace task here
-                else if (task == "avoidance")
-                    AvoidanceTask(subnames[0]);
+                note = subnames[0];
+                try {
+                    Invoke(task, 0f);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("OnTriggerEnter Error: " + e);
+                }
             }
         }
 
         ///////// Task logic //////////
-        private void AlternationTask(string e)
+        private void Nogo()
         {
-            if (iState == States.Start) // 'trial start'
+            // 1. Start: teleport animal / place reward cue
+            // 2. Delay: wait until to touch target
+            if (note == "start")
             {
-                if (e.StartsWith("l") || e.StartsWith("r")) // chosen the door
-                {
-                    iChoice = (e.StartsWith("l")) ? Choices.Left : Choices.Right;
-                    if (iTarget == Choices.None || iTarget == iChoice)
-                    {
-                        // Give reward if the chosen side and the target side match
-                        iState = States.Success;
-                        iCorrect++;
-                        iReward += rewardAmountUl;
-                        Reward();
-                    }
-                    else
-                    {
-                        iState = States.Failure;
-                    }
-                    LogTrial(); // Log trial information at every state change
-                }
-            }
-            else
-            {
-                if (e.StartsWith("e")) // 'trial end'
-                {
-                    iState = States.Start; // move to 'trial start'
-                    iTarget = (iChoice==Choices.Left) ? Choices.Right : Choices.Left; // Alternation
-                    LogTrial(); // Log trial information at every state change
-                    PrintLog(); // Print on console terminal
-
-                    vr.Teleport("10"); // To the starting position for the next trial
-                    iTrial++;
-
-                    // Finishing task condition
-                    if (iTrial >= nTrial)
-                        Quit();
-                }
-            }
-        }
-
-
-        private void AvoidanceTask(string e)
-        {
-            // Delay
-            // Cue
-            // --> Success --> Outcome
-            // --> Fail --> Air puff / Failure
-            // --> End of hallway (or automatic restart?) --> Outcome
-
-            if (e.StartsWith("target"))
-            {
-                if (iState == States.Cue)
-                {
-                    iState = States.Success;
-                    iCorrect++;
-                }
-                else if (iState == States.Failure || iState == States.FailureEnd)
-                {
-                    iState = States.Other;
-                }
-                CueOff();
-                PunishmentOff();
+                iState = States.Delay;
+                iCue = Cues.Nogo;
+                iTrial++;
+                CueOn();
                 LogTrial();
-                PrintLog();
-                StartAvoidanceTask();
             }
-            else if (e.StartsWith("end"))
+            else if (note.StartsWith("choice"))
+            {
+                if (iState == States.Delay)
+                {
+                    iState = States.Choice;
+                    LogTrial();
+                    Invoke("CheckResult", rewardLatency);
+                }
+            }
+            else if (note.StartsWith("target"))
+            {
+                if (iState == States.Choice)
+                {
+                    iState = States.Failure;
+                    LogTrial();
+                    PrintLog();
+                }
+                // No response if Success already happened.
+            }
+            else if (note.StartsWith("end"))
             {
                 // Stop current trial and restart
                 CancelInvoke();
@@ -222,15 +214,29 @@ namespace Janelia
             }
         }
 
-        // Avoidance task related functions
-        private void StartAvoidanceTask()
+        public void CheckResult()
         {
-            if (iState == States.Start || iState == States.Success || iState == States.FailureEnd || iState == States.Other) {
-                iState = States.Delay;
-                iTrial++;
-                note = "delay";
-                LogTrial();
-                Invoke("CueOn", GetDelay());
+            if (task.StartsWith("Nogo"))
+            {
+                if (iState == States.Choice)
+                {
+                    if (iCue == Cues.Nogo)
+                    {
+                        iState = States.Success;
+                        iCorrect++;
+                        note = "";
+                        Reward();
+                        LogTrial();
+                    }
+                    else if (iCue == Cues.Go)
+                    {
+                        iState = States.Failure;
+                        note = "";
+                        PunishmentOn();
+                        LogTrial();
+                    }
+                }
+                // Nothing happens if Success or Failure happend already.
             }
         }
 
@@ -244,23 +250,30 @@ namespace Janelia
             return delayDuration;
         }
 
+        private float GetDistance()
+        {
+            // uses the same parameter as GetDelay, but quantized the distance to make smooth teleport.
+            return Math.Round(GetDelay() / 15.0f) * 15.0f;
+        }
+
         private void CueOn()
         {
-            if (iState == States.Delay) {
-                iState = States.Cue;
-                note = "cue";
-                Invoke("CheckSuccess", punishmentLatency);
-                if (punishmentDuration > 0)
-                    Invoke("CheckFailure", punishmentDuration);
-                Vector3 curpos = vr.GetPosition();
-                vr.Move("cue", new Vector3(0f, 0f, curpos.z-4.5f+punishmentLength/10));
-                LogTrial();
+            if (task.StartsWith("Nogo") && iCue == Cues.Nogo)
+            {
+                vr.Teleport("0");
+                vr.Move("cue_g", new Vector3(0f, 0f, GetDistance()));
             }
         }
 
         private void CueOff()
         {
-            vr.Move("cue", new Vector3(0f, -2f, 0f));
+            if (task.StartsWith("Nogo"))
+            {
+                if (iCue == Cues.Nogo)
+                    vr.Move("cue_ng", new Vector3(0f, -2f, 0f));
+                else
+                    vr.Move("cue_g", new Vector3(0f, -2f, 0f));
+            }
         }
 
         public void Reset()
@@ -268,39 +281,40 @@ namespace Janelia
             iState = States.Standby;
             iTrial = 0;
             iCorrect = 0;
-            iTarget = Choices.None;
+            iCue = Cues.None;
             iChoice = Choices.None;
             iReward = 0;
             note = "";
         }
 
+
         public void Reward()
         {
-            if (_isOpen)
+            if (_isOpenWater)
             {
                 // Send message to Teensy to give the reward
-                serial.Write("r");
+                serialWater.Write("i");
             }
         }
 
         public void PunishmentOn()
         {
-            if (_isOpen)
+            if (_isOpenAir)
             {
-                serial.Write("p");
+                serialAir.Write("p");
             }
         }
 
         public void PunishmentOff()
         {
-            if (_isOpen)
+            if (_isOpenAir)
             {
-                serial.Write("0");
+                serialAir.Write("0");
             }
         }
         public void CheckSuccess()
         {
-            if (iState == States.Cue)
+            if (iState == States.Choice)
             {
                 iState = States.Failure;
                 PunishmentOn();
@@ -317,7 +331,7 @@ namespace Janelia
                 PunishmentOff();
                 LogTrial();
                 PrintLog();
-                StartAvoidanceTask();
+                AvoidanceTask();
             }
         }
 
@@ -453,7 +467,7 @@ namespace Janelia
             taskLog.iState = iState;
             taskLog.iTrial = iTrial;
             taskLog.iCorrect = iCorrect;
-            taskLog.iTarget = iTarget;
+            taskLog.iCue = iCue;
             taskLog.iChoice = iChoice;
             taskLog.iReward = iReward;
             taskLog.delayDuration = delayDuration;
@@ -489,7 +503,7 @@ namespace Janelia
             public States iState;
             public int iTrial;
             public int iCorrect;
-            public Choices iTarget; // 1: left, 2: right
+            public Cues iCue; // 1: left, 2: right
             public Choices iChoice; // 1: left, 2: right
             public int iReward; // total reward amount in uL 
             public float delayDuration;
@@ -513,6 +527,7 @@ namespace Janelia
             public string note;
         }; private TaskParametersLog taskParametersLog = new TaskParametersLog();
 
-        private bool _isOpen = false;
+        private bool _isOpenAir = false;
+        private bool _isOpenWater = false;
     }
 }
