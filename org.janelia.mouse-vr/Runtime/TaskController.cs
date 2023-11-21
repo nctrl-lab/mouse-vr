@@ -119,6 +119,7 @@ namespace Janelia
             Reset(); // Reset trial-related variables
 
             vr.Start(); // This gets the list of object that needs to be controlled during task.
+
         }
 
         private void Update()
@@ -133,6 +134,19 @@ namespace Janelia
                 {
                     Debug.Log("Update Error: " + e);
                 }
+            }
+
+            if (Input.GetKey("r"))
+            {
+                Reward();
+            }
+            else if (Input.GetKey("p"))
+            {
+                PunishmentOn();
+            }
+            else if (Input.GetKey("0"))
+            {
+                PunishmentOff();
             }
 
             // Reads messages from socket connection
@@ -172,6 +186,17 @@ namespace Janelia
         }
 
         ///////// Task logic //////////
+        public void Reset()
+        {
+            iState = States.Standby;
+            iTrial = 0;
+            iCorrect = 0;
+            iCue = Cues.None;
+            iChoice = Choices.None;
+            iReward = 0;
+            note = "";
+        }
+
         private void Nogo()
         {
             // 1. Start: teleport animal / place reward cue
@@ -207,10 +232,7 @@ namespace Janelia
             {
                 // Stop current trial and restart
                 CancelInvoke();
-                CueOff();
-                PunishmentOff();
                 iState = States.Start;
-                vr.Teleport("0");
             }
         }
 
@@ -258,10 +280,13 @@ namespace Janelia
 
         private void CueOn()
         {
-            if (task.StartsWith("Nogo") && iCue == Cues.Nogo)
+            if (task.StartsWith("Nogo"))
             {
                 vr.Teleport("0");
-                vr.Move("cue_g", new Vector3(0f, 0f, GetDistance()));
+                if (iCue == Cues.Nogo)
+                    vr.Move("cue_ng", new Vector3(0f, 0f, GetDistance()));
+                else
+                    vr.Move("cue_g", new Vector3(0f, 0f, GetDistance()));
             }
         }
 
@@ -275,18 +300,6 @@ namespace Janelia
                     vr.Move("cue_g", new Vector3(0f, -2f, 0f));
             }
         }
-
-        public void Reset()
-        {
-            iState = States.Standby;
-            iTrial = 0;
-            iCorrect = 0;
-            iCue = Cues.None;
-            iChoice = Choices.None;
-            iReward = 0;
-            note = "";
-        }
-
 
         public void Reward()
         {
@@ -312,29 +325,6 @@ namespace Janelia
                 serialAir.Write("0");
             }
         }
-        public void CheckSuccess()
-        {
-            if (iState == States.Choice)
-            {
-                iState = States.Failure;
-                PunishmentOn();
-                LogTrial();
-            }
-        }
-
-        public void CheckFailure()
-        {
-            if (iState == States.Failure)
-            {
-                iState = States.FailureEnd;
-                CueOff();
-                PunishmentOff();
-                LogTrial();
-                PrintLog();
-                AvoidanceTask();
-            }
-        }
-
 
         private void JovianToVr(string cmd)
         {
