@@ -24,7 +24,8 @@ namespace Janelia
         public int nTrial, iTrial, iCorrect, iReward, rewardAmount = 10;
         private int rewardAmountPrev = 0;
         public States iState;
-        public Cues iCue;
+        public Cues pCue, iCue;
+        private int iCueRepeat, maxCueRepeat = 3;
         public Choices iChoice;
         private float delayDuration;
         public float delayDurationStart = 30f;
@@ -33,7 +34,6 @@ namespace Janelia
         public float rewardLatency = 0.0f;
         public float punishmentLatency = 1.5f;
         public float punishmentDuration = 0f; // infinite if zero
-        public float punishmentLength = 10f;
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
         public string comPort = "COM6";
@@ -179,6 +179,7 @@ namespace Janelia
             iTrial = 0;
             iCorrect = 0;
             iCue = Cues.None;
+            pCue = Cues.None;
             iChoice = Choices.None;
             iReward = 0;
             note = "";
@@ -231,6 +232,89 @@ namespace Janelia
                     LogTrial();
                     PunishmentOff();
                     Quit();
+                }
+            }
+        }
+
+        private void Nogogo()
+        {
+            // 1. Start: teleport animal / place reward cue
+            // 2. Delay: wait until to touch target
+            if (note == "start")
+            {
+                iState = States.Delay;
+                iTrial++;
+                NextCue(2);
+                CueOn();
+                CheckRewardAmount();
+                LogTrial();
+            }
+            else if (note.StartsWith("choice"))
+            {
+                if (iState == States.Delay)
+                {
+                    iState = States.Choice;
+                    LogTrial();
+                    if (iCue == Cues.Nogo)
+                        Invoke("CheckResult", rewardLatency);
+                    else
+                        Invoke("CheckResult", punishmentLatency);
+                }
+            }
+            else if (note.StartsWith("target"))
+            {
+                if (iState == States.Choice)
+                {
+                    if (iCue == Cues.Nogo) {
+                        iState = States.Failure;
+                    }
+                    else if (iCue == Cues.Go) {
+                        iState = States.Success;
+                    }
+                }
+                else {
+                    iState = States.Other;
+                }
+                LogTrial();
+                PunishmentOff();
+                // No response if outcome already happened.
+            }
+            else if (note.StartsWith("end"))
+            {
+                // Stop current trial and restart
+                CancelInvoke();
+                if (iTrial < nTrial)
+                {
+                    iState = States.Start;
+                    PrintLog();
+                }
+                else
+                {
+                    iState = States.Standby;
+                    LogTrial();
+                    Quit();
+                }
+            }
+        }
+
+        public void NextCue(int nCue)
+        {
+            Random rnd = new Random();
+            if (iCue == Cues.None) {
+                iCue = (Cues)rnd.Next(1, nCue+1);
+            }
+            else {
+                pCue = iCue;
+                iCue = (Cues)rnd.Next(1, nCue+1);
+                if (pCue == iCue) {
+                    iCueRepeat++;
+                    if (iCueRepeat > maxCueRepeat) {
+                        int rndidx = rnd.Next(1, nCue);
+                        if (rndidx >= (int)pCue)
+                            rndidx++;
+                        iCue = (Cues)rndidx;
+                        iCueRepeat = 0;
+                    }
                 }
             }
         }
