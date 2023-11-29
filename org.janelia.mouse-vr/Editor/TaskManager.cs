@@ -27,7 +27,6 @@ namespace Janelia
         float rewardLatency = 0.0f;
         float punishmentLatency = 1.5f;
         float punishmentDuration = 0f;
-        float punishmentLength = 10f;
 
         string comPortPixArt = "COM3";
         string comPortTeensy = "COM6";
@@ -110,7 +109,6 @@ namespace Janelia
             rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
             punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
             punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
-            punishmentLength = EditorGUILayout.FloatField("Cue length (cm)", punishmentLength);
 
             comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
             comPortTeensy = EditorGUILayout.TextField("COM Port Punishment", comPortTeensy);
@@ -193,7 +191,6 @@ namespace Janelia
             taskController.rewardAmount = rewardAmount;
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
-            taskController.punishmentLength = punishmentLength;
             taskController.note = notes;
 
             // Player camera
@@ -263,7 +260,6 @@ namespace Janelia
             taskController.rewardAmount = rewardAmount;
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
-            taskController.punishmentLength = punishmentLength;
             taskController.note = notes;
             taskController.comPort = comPortTeensy;
 

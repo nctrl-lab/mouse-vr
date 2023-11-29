@@ -33,7 +33,7 @@ namespace Janelia
         public float delayDurationEnd = 120f;
         public float rewardLatency = 0.0f;
         public float punishmentLatency = 1.5f;
-        public float punishmentDuration = 0f; // infinite if zero
+        public float punishmentDuration = 10f; // infinite if zero
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
         public string comPort = "COM6";
@@ -283,6 +283,7 @@ namespace Janelia
             {
                 // Stop current trial and restart
                 CancelInvoke();
+                CueOff();
                 if (iTrial < nTrial)
                 {
                     iState = States.Start;
@@ -299,7 +300,7 @@ namespace Janelia
 
         public void NextCue(int nCue)
         {
-            Random rnd = new Random();
+            var rnd = new System.Random();
             if (iCue == Cues.None) {
                 iCue = (Cues)rnd.Next(1, nCue+1);
             }
@@ -380,10 +381,8 @@ namespace Janelia
         {
             if (task.StartsWith("Nogo"))
             {
-                if (iCue == Cues.Nogo)
-                    vr.Move("cue_ng", new Vector3(0f, -2f, 0f));
-                else
-                    vr.Move("cue_g", new Vector3(0f, -2f, 0f));
+                vr.Move("cue_ng", new Vector3(0f, -2f, 0f));
+                vr.Move("cue_g", new Vector3(0f, -2f, 0f));
             }
         }
 
@@ -573,12 +572,12 @@ namespace Janelia
             taskParametersLog.task = task;
             taskParametersLog.nTrial = nTrial;
             taskParametersLog.rewardAmount = rewardAmount;
+            taskParametersLog.rewardLatency = rewardLatency;
             taskParametersLog.delayDurationStart = delayDurationStart;
             taskParametersLog.delayDurationMean = delayDurationMean;
             taskParametersLog.delayDurationEnd = delayDurationEnd;
             taskParametersLog.punishmentLatency = punishmentLatency;
             taskParametersLog.punishmentDuration = punishmentDuration;
-            taskParametersLog.punishmentLength = punishmentLength;
             taskParametersLog.note = note;
             Logger.Log(taskParametersLog);
         }
@@ -605,12 +604,12 @@ namespace Janelia
             public string task;
             public int nTrial;
             public int rewardAmount; // reward amount per trial
+            public float rewardLatency;
             public float delayDurationStart;
             public float delayDurationMean;
             public float delayDurationEnd;
             public float punishmentLatency;
             public float punishmentDuration; // infinite if zero
-            public float punishmentLength;
             public string note;
         }; private TaskParametersLog taskParametersLog = new TaskParametersLog();
 

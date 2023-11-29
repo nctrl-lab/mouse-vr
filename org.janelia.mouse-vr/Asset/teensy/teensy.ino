@@ -1,6 +1,6 @@
 const unsigned long airDuration = 200000;  // 200 ms
 const unsigned long intervalDuration = 300000; // 300 ms
-const unsigned long finishDuration = 10000000; // infinite if zero
+unsigned long finishDuration = 10000000; // infinite if zero
 
 unsigned long now;
 
@@ -104,6 +104,22 @@ void checkSerial() {
             {
                 Serial.print("Water duration: ");
                 Serial.print(waterDuration);
+                Serial.println(" (unchanged)");
+            }
+        }
+        else if (cmd == 'f')
+        {
+            int duration = Serial.parseInt();
+            if (duration >= 1 && duration <= 100)
+            {
+                finishDuration = duration*1000000;
+                Serial.print("Air duration: ");
+                Serial.println(finishDuration);
+            }
+            else
+            {
+                Serial.print("Air duration: ");
+                Serial.print(finishDuration);
                 Serial.println(" (unchanged)");
             }
         }
