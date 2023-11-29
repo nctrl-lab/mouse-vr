@@ -25,6 +25,7 @@ namespace Janelia
         public float sideMultiplier = 1f;
         public bool enableKeyboard = false;
         public float keyboardSpeed = 3.0f; // 30 cm per second
+        public string comPortPixArt = "COM3";
 
         // Check physics setting is correct
         private void Awake()
@@ -68,6 +69,7 @@ namespace Janelia
         private void Start()
         {
             _reader = new MouseTreadmillReader();
+            _reader.comPortPixArt = comPortPixArt;
             _reader.allowMovement = allowMovement;
             _reader.allowRotationYaw = allowRotationYaw;
             _reader.allowRotationRoll = allowRotationRoll;

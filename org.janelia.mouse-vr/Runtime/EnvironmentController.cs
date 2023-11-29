@@ -36,10 +36,10 @@ public class EnvironmentController : MonoBehaviour
             string name = mesh.name.Trim('_');
             string[] subname = name.Split('_');
 
-            if (subname.Length == 2)
+            if (subname.Length >= 2)
             {
                 // name_p: physics enabled
-                if (subname[1].Contains('p'))
+                if (subname[subname.Length - 1].Contains('p'))
                 {
                     if (meshcollider == null)
                     {
@@ -51,7 +51,7 @@ public class EnvironmentController : MonoBehaviour
                     }
 
                     // name_pm: movable
-                    if (subname[1].Contains('m'))
+                    if (subname[subname.Length - 1].Contains('m'))
                     {
                         Rigidbody rigidbody = mesh.GetComponent<Rigidbody>();
                         if (rigidbody == null)
@@ -61,7 +61,7 @@ public class EnvironmentController : MonoBehaviour
                     }
 
                     // name_pr: reportable / penatrable
-                    if (subname[1].Contains('r') && !subname[1].Contains('i'))
+                    if (subname[subname.Length - 1].Contains('r') && !subname[subname.Length - 1].Contains('i'))
                     {
                         meshcollider.convex = true;
                         meshcollider.isTrigger = true;

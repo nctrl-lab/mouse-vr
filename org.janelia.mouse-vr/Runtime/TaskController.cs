@@ -21,9 +21,11 @@ namespace Janelia
         public string animalName, task, note;
 
         // Task-related variables
-        public int nTrial, iTrial, iCorrect, iReward, rewardAmountUl;
+        public int nTrial, iTrial, iCorrect, iReward, rewardAmount = 10;
+        private int rewardAmountPrev = 0;
         public States iState;
-        public Choices iCue, iChoice;
+        public Cues iCue;
+        public Choices iChoice;
         private float delayDuration;
         public float delayDurationStart = 30f;
         public float delayDurationMean = 60f;
@@ -34,10 +36,8 @@ namespace Janelia
         public float punishmentLength = 10f;
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
-        public string comPortAir = "COM6";
-        public string comPortWater = "COM9";
-        public SerialPort serialAir;
-        public SerialPort serialWater;
+        public string comPort = "COM6";
+        public SerialPort serial;
 
         // Socket communication
         public int socketPort = 22223;
@@ -82,33 +82,18 @@ namespace Janelia
         {
 
             // Serial: air puff
-            serialAir = new SerialPort(comPortAir, 115200);
+            serial = new SerialPort(comPort, 115200);
             try
             {
-                serialAir.Open();
-                if (serialAir.IsOpen)
+                serial.Open();
+                if (serial.IsOpen)
                 {
-                    _isOpenAir = true;
+                    _isOpen = true;
                 }
             }
             catch
             {
-                Debug.Log(serialAir + " is not available");
-            }
-
-            // Serial: water reward
-            serialWater = new SerialPort(comPortWater, 115200);
-            try
-            {
-                serialWater.Open();
-                if (serialWater.IsOpen)
-                {
-                    _isOpenWater = true;
-                }
-            }
-            catch
-            {
-                Debug.Log(serialWater + " is not available");
+                Debug.Log(serial + " is not available");
             }
 
             // Try to open socket for external communication
@@ -136,17 +121,20 @@ namespace Janelia
                 }
             }
 
-            if (Input.GetKey("r"))
+            if (Input.GetKeyDown("r"))
             {
                 Reward();
+                Debug.Log("Reward");
             }
-            else if (Input.GetKey("p"))
+            else if (Input.GetKeyDown("p"))
             {
                 PunishmentOn();
+                Debug.Log("Punishment on");
             }
-            else if (Input.GetKey("0"))
+            else if (Input.GetKeyDown("0"))
             {
                 PunishmentOff();
+                Debug.Log("Punishment off");
             }
 
             // Reads messages from socket connection
@@ -171,10 +159,9 @@ namespace Janelia
         // When the player (animal) hits the objects with a specific naming (_objectname_r_)
         private void OnTriggerEnter(Collider other)
         {
-            string[] subnames = other.name.Trim('_').Split('_');
-            if (subnames.Length==2 && subnames[1].Contains('r'))
+            note = other.name.Trim('_');
+            if (note.EndsWith('r'))
             {
-                note = subnames[0];
                 try {
                     Invoke(task, 0f);
                 }
@@ -207,6 +194,7 @@ namespace Janelia
                 iCue = Cues.Nogo;
                 iTrial++;
                 CueOn();
+                CheckRewardAmount();
                 LogTrial();
             }
             else if (note.StartsWith("choice"))
@@ -224,7 +212,7 @@ namespace Janelia
                 {
                     iState = States.Failure;
                     LogTrial();
-                    PrintLog();
+                    Debug.Log(iState);
                 }
                 // No response if Success already happened.
             }
@@ -232,7 +220,18 @@ namespace Janelia
             {
                 // Stop current trial and restart
                 CancelInvoke();
-                iState = States.Start;
+                if (iTrial < nTrial)
+                {
+                    iState = States.Start;
+                    PrintLog();
+                }
+                else
+                {
+                    iState = States.Standby;
+                    LogTrial();
+                    PunishmentOff();
+                    Quit();
+                }
             }
         }
 
@@ -249,6 +248,7 @@ namespace Janelia
                         note = "";
                         Reward();
                         LogTrial();
+                        Debug.Log(iState);
                     }
                     else if (iCue == Cues.Go)
                     {
@@ -256,6 +256,7 @@ namespace Janelia
                         note = "";
                         PunishmentOn();
                         LogTrial();
+                        Debug.Log(iState);
                     }
                 }
                 // Nothing happens if Success or Failure happend already.
@@ -268,14 +269,15 @@ namespace Janelia
             double r = rand.NextDouble();
             if (r == 0) r = Single.MinValue;
             delayDuration = (float) Math.Min(delayDurationStart - (delayDurationMean-delayDurationStart) * Math.Log(r), delayDurationEnd);
-            Debug.Log("Delay duration: " + delayDuration + " s");
             return delayDuration;
         }
 
         private float GetDistance()
         {
             // uses the same parameter as GetDelay, but quantized the distance to make smooth teleport.
-            return Math.Round(GetDelay() / 15.0f) * 15.0f;
+            float distance = (float) Math.Round(GetDelay() / 15.0f) * 1.50f;
+            Debug.Log("Delay distance: " + 10f * distance + " cm");
+            return distance;
         }
 
         private void CueOn()
@@ -303,26 +305,37 @@ namespace Janelia
 
         public void Reward()
         {
-            if (_isOpenWater)
+            if (_isOpen)
             {
                 // Send message to Teensy to give the reward
-                serialWater.Write("i");
+                serial.Write("r");
+                iReward += rewardAmount;
+            }
+        }
+
+        public void CheckRewardAmount()
+        {
+            if (rewardAmount != rewardAmountPrev)
+            {
+                serial.Write("v" + rewardAmount + "\n");
+                rewardAmountPrev = rewardAmount;
+                Debug.Log("Reward amount: " + rewardAmount + " ul");
             }
         }
 
         public void PunishmentOn()
         {
-            if (_isOpenAir)
+            if (_isOpen)
             {
-                serialAir.Write("p");
+                serial.Write("p");
             }
         }
 
         public void PunishmentOff()
         {
-            if (_isOpenAir)
+            if (_isOpen)
             {
-                serialAir.Write("0");
+                serial.Write("0");
             }
         }
 
@@ -467,7 +480,7 @@ namespace Janelia
 
         private void PrintLog()
         {
-            Debug.Log("trial: " + iTrial + ", correct: " + iCorrect);
+            Debug.Log("trial: " + iTrial + ", correct: " + iCorrect + ", reward: " + iReward + " ul");
         }
 
         private void LogParameter()
@@ -475,7 +488,7 @@ namespace Janelia
             taskParametersLog.animalName = animalName;
             taskParametersLog.task = task;
             taskParametersLog.nTrial = nTrial;
-            taskParametersLog.rewardAmountUl = rewardAmountUl;
+            taskParametersLog.rewardAmount = rewardAmount;
             taskParametersLog.delayDurationStart = delayDurationStart;
             taskParametersLog.delayDurationMean = delayDurationMean;
             taskParametersLog.delayDurationEnd = delayDurationEnd;
@@ -507,7 +520,7 @@ namespace Janelia
             public string animalName;
             public string task;
             public int nTrial;
-            public int rewardAmountUl; // reward amount per trial
+            public int rewardAmount; // reward amount per trial
             public float delayDurationStart;
             public float delayDurationMean;
             public float delayDurationEnd;
@@ -517,7 +530,6 @@ namespace Janelia
             public string note;
         }; private TaskParametersLog taskParametersLog = new TaskParametersLog();
 
-        private bool _isOpenAir = false;
-        private bool _isOpenWater = false;
+        private bool _isOpen = false;
     }
 }

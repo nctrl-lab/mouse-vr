@@ -21,16 +21,17 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
-        float delayDurationStart = 10f;
-        float delayDurationMean = 30f;
-        float delayDurationEnd = 50f;
+        float delayDurationStart = 30f;
+        float delayDurationMean = 60f;
+        float delayDurationEnd = 120f;
+        float rewardLatency = 0.0f;
         float punishmentLatency = 1.5f;
         float punishmentDuration = 0f;
         float punishmentLength = 10f;
 
         string comPortPixArt = "COM3";
-        string comPortReward = "COM6";
-        int nTrial = 100, rewardAmountUl = 10;
+        string comPortTeensy = "COM6";
+        int nTrial = 100, rewardAmount = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -89,7 +90,7 @@ namespace Janelia
             {
                 using (StreamWriter file = new StreamWriter(taskListFile))
                 {
-                    file.Write("avoidance,gonogo");
+                    file.Write("Nogo");
                 }
             }
             using (StreamReader reader = File.OpenText(taskListFile))
@@ -102,16 +103,17 @@ namespace Janelia
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
             taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
-            delayDurationStart = EditorGUILayout.FloatField("Delay duration min", delayDurationStart);
-            delayDurationMean = EditorGUILayout.FloatField("Delay duration mean", delayDurationMean);
-            delayDurationEnd = EditorGUILayout.FloatField("Delay duration max", delayDurationEnd);
-            punishmentLatency = EditorGUILayout.FloatField("Air puff latency", punishmentLatency);
-            punishmentDuration = EditorGUILayout.FloatField("Air puff duration", punishmentDuration);
-            punishmentLength = EditorGUILayout.FloatField("Cue length", punishmentLength);
-            rewardAmountUl = EditorGUILayout.IntField("Reward amount (uL)", rewardAmountUl);
+            delayDurationStart = EditorGUILayout.FloatField("Delay duration min (cm)", delayDurationStart);
+            delayDurationMean = EditorGUILayout.FloatField("Delay duration mean (cm)", delayDurationMean);
+            delayDurationEnd = EditorGUILayout.FloatField("Delay duration max (cm)", delayDurationEnd);
+            rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
+            rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
+            punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
+            punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
+            punishmentLength = EditorGUILayout.FloatField("Cue length (cm)", punishmentLength);
 
-            comPortReward = EditorGUILayout.TextField("COM Port Reward", comPortReward);
             comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
+            comPortTeensy = EditorGUILayout.TextField("COM Port Punishment", comPortTeensy);
 
             EditorGUILayout.Space(10);
 
@@ -187,6 +189,8 @@ namespace Janelia
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;
+            taskController.rewardLatency = rewardLatency;
+            taskController.rewardAmount = rewardAmount;
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
             taskController.punishmentLength = punishmentLength;
@@ -255,11 +259,13 @@ namespace Janelia
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;
+            taskController.rewardLatency = rewardLatency;
+            taskController.rewardAmount = rewardAmount;
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
             taskController.punishmentLength = punishmentLength;
             taskController.note = notes;
-            taskController.comPort = comPortReward;
+            taskController.comPort = comPortTeensy;
 
             playerController = player.GetComponent<PlayerController>();
             playerController.allowRotationYaw = allowRotationYaw;
