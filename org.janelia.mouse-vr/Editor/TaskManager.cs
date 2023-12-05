@@ -26,10 +26,10 @@ namespace Janelia
         float delayDurationEnd = 120f;
         float rewardLatency = 0.0f;
         float punishmentLatency = 1.5f;
-        float punishmentDuration = 0f;
+        float punishmentDuration = 10f;
 
         string comPortPixArt = "COM3";
-        string comPortTeensy = "COM6";
+        string comPortTeensy = "COM4";
         int nTrial = 100, rewardAmount = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
@@ -111,7 +111,7 @@ namespace Janelia
             punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
 
             comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
-            comPortTeensy = EditorGUILayout.TextField("COM Port Punishment", comPortTeensy);
+            comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
 
             EditorGUILayout.Space(10);
 

@@ -36,7 +36,7 @@ namespace Janelia
         public float punishmentDuration = 10f; // infinite if zero
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
-        public string comPort = "COM6";
+        public string comPort = "COM4";
         public SerialPort serial;
 
         // Socket communication
@@ -103,6 +103,9 @@ namespace Janelia
             LogParameter(); // Log task parameters (animal name, task, trial number, reward amount per trial)
             Reset(); // Reset trial-related variables
 
+            SetRewardAmount();
+            SetPunishmentDuration();
+
             vr.Start(); // This gets the list of object that needs to be controlled during task.
 
         }
@@ -124,6 +127,7 @@ namespace Janelia
             if (Input.GetKeyDown("r"))
             {
                 Reward();
+                iReward += rewardAmount;
                 Debug.Log("Reward");
             }
             else if (Input.GetKeyDown("p"))
@@ -131,10 +135,22 @@ namespace Janelia
                 PunishmentOn();
                 Debug.Log("Punishment on");
             }
+            else if (Input.GetKeyDown("f"))
+            {
+                FlushWater();
+            }
             else if (Input.GetKeyDown("0"))
             {
                 PunishmentOff();
                 Debug.Log("Punishment off");
+            }
+            else if (Input.GetKeyDown("h"))
+            {
+                Debug.Log("==== Helpful keys ====");
+                Debug.Log("r: give the water reward");
+                Debug.Log("p: start the air puff");
+                Debug.Log("0: stop the air puff");
+                Debug.Log("f: flush water for 1 second");
             }
 
             // Reads messages from socket connection
@@ -396,13 +412,26 @@ namespace Janelia
             }
         }
 
-        public void CheckRewardAmount()
+        public void flushWater() {
+            if (_isOpen) {
+                serial.Write("f\n");
+                Debug.Log("Flush water for 1 second");
+            }
+        }
+
+        public void SetRewardAmount()
         {
-            if (rewardAmount != rewardAmountPrev)
-            {
+            if (_isOpen) {
                 serial.Write("v" + rewardAmount + "\n");
-                rewardAmountPrev = rewardAmount;
                 Debug.Log("Reward amount: " + rewardAmount + " ul");
+            }
+        }
+
+        public void SetPunishmentDuration()
+        {
+            if (_isOpen) {
+                serial.Write("f" + (int)punishmentDuration+ "\n");
+                Debug.Log("Punishment duration: " + (int)punishmentDuration + " ul");
             }
         }
 

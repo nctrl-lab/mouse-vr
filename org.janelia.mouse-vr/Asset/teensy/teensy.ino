@@ -44,7 +44,17 @@ void checkSerial() {
     if (Serial.available()) {
     	  char cmd = Serial.read();
     	
-        if (cmd == 'p') {
+        if (cmd == '?' || cmd == 'h') {
+            Serial.println("==== Help ====");
+            Serial.println("r: give water reward");
+            Serial.println("p: give air puff");
+            Serial.println("0: turn off both water and air values");
+            Serial.println("i: open the water value for 1 sec");
+            Serial.println("v10: set the water volume to 10 ul");
+            Serial.println("d58000: set the water valve duration as 58 msec");
+            Serial.println("f10: set the air puff duration to 10 sec");
+        }
+        else if (cmd == 'p') {
             if (airState == STANDBY  || airState == DONE) {
                 airState = ON;
                 airFinalTime = now;
