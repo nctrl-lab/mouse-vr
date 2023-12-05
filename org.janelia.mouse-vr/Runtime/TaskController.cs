@@ -22,7 +22,6 @@ namespace Janelia
 
         // Task-related variables
         public int nTrial, iTrial, iCorrect, iReward, rewardAmount = 10;
-        private int rewardAmountPrev = 0;
         public States iState;
         public Cues pCue, iCue;
         private int iCueRepeat, maxCueRepeat = 3;
@@ -144,14 +143,6 @@ namespace Janelia
                 PunishmentOff();
                 Debug.Log("Punishment off");
             }
-            else if (Input.GetKeyDown("h"))
-            {
-                Debug.Log("==== Helpful keys ====");
-                Debug.Log("r: give the water reward");
-                Debug.Log("p: start the air puff");
-                Debug.Log("0: stop the air puff");
-                Debug.Log("f: flush water for 1 second");
-            }
 
             // Reads messages from socket connection
             while (socket.Take(ref socketBuffer, ref socketTimestampMs))
@@ -211,7 +202,6 @@ namespace Janelia
                 iCue = Cues.Nogo;
                 iTrial++;
                 CueOn();
-                CheckRewardAmount();
                 LogTrial();
             }
             else if (note.StartsWith("choice"))
@@ -262,7 +252,6 @@ namespace Janelia
                 iTrial++;
                 NextCue(2);
                 CueOn();
-                CheckRewardAmount();
                 LogTrial();
             }
             else if (note.StartsWith("choice"))
@@ -412,7 +401,7 @@ namespace Janelia
             }
         }
 
-        public void flushWater() {
+        public void FlushWater() {
             if (_isOpen) {
                 serial.Write("f\n");
                 Debug.Log("Flush water for 1 second");
