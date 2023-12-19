@@ -28,9 +28,11 @@ namespace Janelia
         float punishmentLatency = 1.5f;
         float punishmentDuration = 10f;
 
+        bool sendSlackNotification = true;
+
         string comPortPixArt = "COM3";
         string comPortTeensy = "COM4";
-        int nTrial = 100, rewardAmount = 10;
+        int nTrial = 200, rewardAmount = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -109,6 +111,8 @@ namespace Janelia
             rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
             punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
             punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
+
+            sendSlackNotification = EditorGUILayout.Toggle("Send Slack notification", sendSlackNotification);
 
             comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
             comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
@@ -192,6 +196,7 @@ namespace Janelia
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
             taskController.note = notes;
+            taskController.sendSlackNotification = sendSlackNotification;
 
             // Player camera
             mainCamera = GameObject.Find("Main Camera");
@@ -261,6 +266,7 @@ namespace Janelia
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
             taskController.note = notes;
+            taskController.sendSlackNotification = sendSlackNotification;
             taskController.comPort = comPortTeensy;
 
             playerController = player.GetComponent<PlayerController>();
@@ -296,7 +302,7 @@ namespace Janelia
 
         private void Stop()
         {
-            UnityEditor.EditorApplication.isPlaying = false;
+            taskController.Quit();
         }
 
         GameObject player, environment, mainCamera, mainLight;

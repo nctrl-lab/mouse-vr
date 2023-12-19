@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
 // Task-related logic comes here
 
@@ -22,6 +23,8 @@ namespace Janelia
 
         // Task-related variables
         public int nTrial, iTrial, iCorrect, iReward, rewardAmount = 10;
+        public int iTrial1, iTrial2;
+        public int iCorrect1, iCorrect2;
         public States iState;
         public Cues pCue, iCue;
         private int iCueRepeat, maxCueRepeat = 3;
@@ -37,6 +40,9 @@ namespace Janelia
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
         public string comPort = "COM4";
         public SerialPort serial;
+        public bool sendSlackNotification = true;
+        private string payload = "";
+        
 
         // Socket communication
         public int socketPort = 22223;
@@ -185,11 +191,16 @@ namespace Janelia
             iState = States.Standby;
             iTrial = 0;
             iCorrect = 0;
+            iTrial1 = 0;
+            iTrial2 = 0;
+            iCorrect1 = 0;
+            iCorrect2 = 0;
             iCue = Cues.None;
             pCue = Cues.None;
             iChoice = Choices.None;
             iReward = 0;
             note = "";
+            payload = "";
         }
 
         private void Nogo()
@@ -201,6 +212,7 @@ namespace Janelia
                 iState = States.Delay;
                 iCue = Cues.Nogo;
                 iTrial++;
+                iTrial1++;
                 CueOn();
                 LogTrial();
             }
@@ -249,8 +261,14 @@ namespace Janelia
             if (note == "start")
             {
                 iState = States.Delay;
-                iTrial++;
                 NextCue(2);
+                iTrial++;
+                if (iCue == Cues.Nogo) {
+                    iTrial1++;
+                }
+                else {
+                    iTrial2++;
+                }
                 CueOn();
                 LogTrial();
             }
@@ -275,6 +293,8 @@ namespace Janelia
                     }
                     else if (iCue == Cues.Go) {
                         iState = States.Success;
+                        iCorrect++;
+                        iCorrect2++;
                     }
                 }
                 else {
@@ -335,6 +355,7 @@ namespace Janelia
                     {
                         iState = States.Success;
                         iCorrect++;
+                        iCorrect1++;
                         note = "";
                         Reward();
                         LogTrial();
@@ -366,7 +387,7 @@ namespace Janelia
         {
             // uses the same parameter as GetDelay, but quantized the distance to make smooth teleport.
             float distance = (float) Math.Round(GetDelay() / 15.0f) * 1.50f;
-            Debug.Log("Delay distance: " + 10f * distance + " cm");
+            //Debug.Log("Delay distance: " + 10f * distance + " cm");
             return distance;
         }
 
@@ -558,19 +579,27 @@ namespace Janelia
             }
             socket.OnDisable();
         }
-
-        private void Quit()
+        
+        public void Quit()
         {
-            // This is basically the same as clicking the stop button
-            UnityEditor.EditorApplication.isPlaying = false;
+            if (sendSlackNotification) {
+                StartCoroutine(Slack());
+            }
+            else {
+                // This is basically the same as clicking the stop button
+                UnityEditor.EditorApplication.isPlaying = false;
+            }
         }
-
 
         private void LogTrial()
         {
             taskLog.iState = iState;
             taskLog.iTrial = iTrial;
+            taskLog.iTrial1 = iTrial1;
+            taskLog.iTrial2 = iTrial2;
             taskLog.iCorrect = iCorrect;
+            taskLog.iCorrect1 = iCorrect1;
+            taskLog.iCorrect2 = iCorrect2;
             taskLog.iCue = iCue;
             taskLog.iChoice = iChoice;
             taskLog.iReward = iReward;
@@ -581,7 +610,31 @@ namespace Janelia
 
         private void PrintLog()
         {
-            Debug.Log("trial: " + iTrial + ", correct: " + iCorrect + ", reward: " + iReward + " ul");
+            Debug.Log("Total: " + iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%) " + "no-go: " + iCorrect1 + "/" + iTrial1 + ", go: " + iCorrect2 + "/" + iTrial2 + ", reward: " + iReward + " ul");
+        }
+
+        IEnumerator Slack()
+        {
+            const string uri = "https://hooks.slack.com/services/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";
+
+            payload = animalName + " (" + task + ") " + iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%), " + iReward + " uL, " + (Time.time / 60).ToString("0.0") + " min";
+            
+            using (UnityWebRequest www = UnityWebRequest.Post(uri, "{'text':'" + payload + "'}", "application/json"))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.Log(www.error);
+                }
+                else
+                {
+                    Debug.Log(payload);
+                }
+            }
+            
+            // This is basically the same as clicking the stop button
+            UnityEditor.EditorApplication.isPlaying = false;
         }
 
         private void LogParameter()
@@ -606,7 +659,12 @@ namespace Janelia
         {
             public States iState;
             public int iTrial;
+            public int iTrial1;
+            public int iTrial2;
             public int iCorrect;
+            
+            public int iCorrect1;
+            public int iCorrect2;
             public Cues iCue; // 1: left, 2: right
             public Choices iChoice; // 1: left, 2: right
             public int iReward; // total reward amount in uL 

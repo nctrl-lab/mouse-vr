@@ -147,9 +147,12 @@ namespace Janelia
             //      3) Add PhysicMaterial to set up friction.
             //      4) Use Rigidbody.velocity, instead of transform.Translate or rigidbody.MovePosition.
 
-            _rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
+            _rigidbody.MovePosition(_position); // use this if there will be no collision
+            //_rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
+            
             if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation - _rotationPrev);
+
             _distance += treadmillLog.pitch * MouseTreadmillReader.BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier * Mathf.Cos(_rotation.y - _rotationPrev.y);
 
             // if (!followPath || pathCreator == null)
