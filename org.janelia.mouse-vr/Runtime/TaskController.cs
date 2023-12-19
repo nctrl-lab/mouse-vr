@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -57,6 +58,10 @@ namespace Janelia
         Regex regex_s3 = new Regex(@"^(\w+)\.(\w+)\(\s*'?\s*(\w+)\s*'?\s*,\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)\s*\)\n?");
         Match match;
 
+        // Slack
+        string slackFile = Path.Join(Application.dataPath, "slackUri.txt");
+        string slackUri = "";
+
         // Task states
         public enum States
         {
@@ -99,6 +104,15 @@ namespace Janelia
             catch
             {
                 Debug.Log(serial + " is not available");
+            }
+
+            // Slack
+            if (File.Exists(slackFile))
+            {
+                using (StreamReader reader = File.OpenText(slackFile))
+                {
+                    slackUri = reader.ReadLine();
+                }
             }
 
             // Try to open socket for external communication
@@ -582,7 +596,7 @@ namespace Janelia
         
         public void Quit()
         {
-            if (sendSlackNotification) {
+            if (sendSlackNotification && slackUri != "") {
                 StartCoroutine(Slack());
             }
             else {
@@ -615,11 +629,9 @@ namespace Janelia
 
         IEnumerator Slack()
         {
-            const string uri = "https://hooks.slack.com/services/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";
-
             payload = animalName + " (" + task + ") " + iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%), " + iReward + " uL, " + (Time.time / 60).ToString("0.0") + " min";
             
-            using (UnityWebRequest www = UnityWebRequest.Post(uri, "{'text':'" + payload + "'}", "application/json"))
+            using (UnityWebRequest www = UnityWebRequest.Post(slackUri, "{'text':'" + payload + "'}", "application/json"))
             {
                 yield return www.SendWebRequest();
 
