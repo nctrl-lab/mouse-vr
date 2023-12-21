@@ -42,7 +42,6 @@ namespace Janelia
         public string comPort = "COM4";
         public SerialPort serial;
         public bool sendSlackNotification = true;
-        private string payload = "";
         
 
         // Socket communication
@@ -214,7 +213,6 @@ namespace Janelia
             iChoice = Choices.None;
             iReward = 0;
             note = "";
-            payload = "";
         }
 
         private void Nogo()
@@ -624,12 +622,28 @@ namespace Janelia
 
         private void PrintLog()
         {
-            Debug.Log("Total: " + iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%) " + "no-go: " + iCorrect1 + "/" + iTrial1 + ", go: " + iCorrect2 + "/" + iTrial2 + ", reward: " + iReward + " ul");
+            string output = "";
+            if (iTrial > 0)
+                output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)";
+            if (iTrial1 > 0)
+                output += ", no-go:" + iCorrect1 + "/" + iTrial1 + " (" + (100*iCorrect1/iTrial1).ToString("0") + "%)";
+            if (iTrial2 > 0)
+                output += ", go:" + iCorrect2 + "/" + iTrial2 + " (" + (100*iCorrect2/iTrial2).ToString("0") + "%)";
+            output += ", " + iReward + " ul, " + (Time.time / 60).ToString("0.0") + " min";
+
+            Debug.Log(output);
         }
 
         IEnumerator Slack()
         {
-            payload = animalName + " (" + task + ") " + iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%), " + iReward + " uL, " + (Time.time / 60).ToString("0.0") + " min";
+            string payload = animalName + " (" + task + ") ";
+            if (iTrial > 0)
+                payload += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)";
+            if (iTrial1 > 0)
+                payload += ", no-go:" + iCorrect1 + "/" + iTrial1 + " (" + (100*iCorrect1/iTrial1).ToString("0") + "%)";
+            if (iTrial2 > 0)
+                payload += ", go:" + iCorrect2 + "/" + iTrial2 + " (" + (100*iCorrect2/iTrial2).ToString("0") + "%)";
+            payload += ", " + iReward + " ul, " + (Time.time / 60).ToString("0.0") + " min";
             
             using (UnityWebRequest www = UnityWebRequest.Post(slackUri, "{'text':'" + payload + "'}", "application/json"))
             {
