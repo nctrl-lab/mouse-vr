@@ -26,7 +26,7 @@ namespace Janelia
 
         float delayDurationStart = 30f;
         float delayDurationMean = 60f;
-        float delayDurationEnd = 120f;
+        float delayDurationEnd = 90f;
 
         float rewardLatency = 1f;
         float punishmentLatency = 4f;
