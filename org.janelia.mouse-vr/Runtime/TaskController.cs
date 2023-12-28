@@ -23,19 +23,35 @@ namespace Janelia
         public string animalName, task, note;
 
         // Task-related variables
-        public int nTrial, iTrial, iCorrect, iReward, rewardAmount = 10;
-        public int iTrial1, iTrial2;
-        public int iCorrect1, iCorrect2;
+        public int nTrial, iTrial, iTrial1, iTrial2;
+        public int iCorrect, iCorrect1, iCorrect2;
+
         public States iState;
         public Cues pCue, iCue;
-        private int iCueRepeat, maxCueRepeat = 3;
         public Choices iChoice;
+        private int iCueRepeat, maxCueRepeat = 3;
+        public int cueRatio = 50;
+        public bool result;
+
+        public int iReward, rewardAmount = 10;
+        public int rewardMax = 1500;
+
         private float delayDuration;
         public float delayDurationStart = 30f;
         public float delayDurationMean = 60f;
         public float delayDurationEnd = 120f;
-        public float rewardLatency = 0.0f;
-        public float punishmentLatency = 1.5f;
+
+        public float rewardLatency = 1.0f;
+        public float rewardLatencyMin = 0.0f;
+        public float rewardLatencyMax = 4.0f;
+        public float rewardLatencyUp = 0.05f;
+        public float rewardLatencyDown = -0.05f;
+
+        public float punishmentLatency = 4f;
+        public float punishmentLatencyMin = 2f;
+        public float punishmentLatencyMax = 5f;
+        public float punishmentLatencyUp = 0.05f;
+        public float punishmentLatencyDown = -0.05f;
         public float punishmentDuration = 10f; // infinite if zero
 
         // Serial ports to Teensy (or BCS) to give reward (or optogenetics)
@@ -266,14 +282,20 @@ namespace Janelia
             }
         }
 
-        private void Nogogo()
+        private void NogoGoLearn()
         {
             // 1. Start: teleport animal / place reward cue
-            // 2. Delay: wait until to touch target
             if (note == "start")
             {
                 iState = States.Delay;
-                NextCue(2);
+
+                if (cueRatio == 50) {
+                    NextCue(2);
+                }
+                else {
+                    NextCueRatio();
+                }
+
                 iTrial++;
                 if (iCue == Cues.Nogo) {
                     iTrial1++;
@@ -284,6 +306,9 @@ namespace Janelia
                 CueOn();
                 LogTrial();
             }
+            // 2. Choice: wait until to touch target
+            //  1) No-go: a reward is given after rewardLatency seconds
+            //  2) Go: punishment is given after punishmentLatency seconds
             else if (note.StartsWith("choice"))
             {
                 if (iState == States.Delay)
@@ -296,18 +321,24 @@ namespace Janelia
                         Invoke("CheckResult", punishmentLatency);
                 }
             }
+            // 3. Target:
+            //  1) No-go: failure if the animal touches this before rewardLatency has passed
+            //  2) Go: success if the animal touches this before punishmentLatency has passed
             else if (note.StartsWith("target"))
             {
                 if (iState == States.Choice)
                 {
                     if (iCue == Cues.Nogo) {
                         iState = States.Failure;
+                        result = false;
                     }
                     else if (iCue == Cues.Go) {
                         iState = States.Success;
+                        result = true;
                         iCorrect++;
                         iCorrect2++;
                     }
+                    Debug.Log(iState);
                 }
                 else {
                     iState = States.Other;
@@ -316,12 +347,99 @@ namespace Janelia
                 PunishmentOff();
                 // No response if outcome already happened.
             }
+            // 4. End: check session finishing condition
             else if (note.StartsWith("end"))
             {
                 // Stop current trial and restart
                 CancelInvoke();
                 CueOff();
-                if (iTrial < nTrial)
+                if ((iTrial < nTrial) && (iReward < rewardMax))
+                {
+                    CheckLatency();
+                    iState = States.Start;
+                    PrintLog();
+                }
+                else
+                {
+                    iState = States.Standby;
+                    LogTrial();
+                    Quit();
+                }
+            }
+        }
+
+        private void NogoGo()
+        {
+            // 1. Start: teleport animal / place reward cue
+            if (note == "start")
+            {
+                iState = States.Delay;
+
+                if (cueRatio == 50) {
+                    NextCue(2);
+                }
+                else {
+                    NextCueRatio();
+                }
+
+                iTrial++;
+                if (iCue == Cues.Nogo) {
+                    iTrial1++;
+                }
+                else {
+                    iTrial2++;
+                }
+                CueOn();
+                LogTrial();
+            }
+            // 2. Choice: wait until to touch target
+            //  1) No-go: a reward is given after rewardLatency seconds
+            //  2) Go: punishment is given after punishmentLatency seconds
+            else if (note.StartsWith("choice"))
+            {
+                if (iState == States.Delay)
+                {
+                    iState = States.Choice;
+                    LogTrial();
+                    if (iCue == Cues.Nogo)
+                        Invoke("CheckResult", rewardLatency);
+                    else
+                        Invoke("CheckResult", punishmentLatency);
+                }
+            }
+            // 3. Target:
+            //  1) No-go: failure if the animal touches this before rewardLatency has passed
+            //  2) Go: success if the animal touches this before punishmentLatency has passed
+            else if (note.StartsWith("target"))
+            {
+                if (iState == States.Choice)
+                {
+                    if (iCue == Cues.Nogo) {
+                        iState = States.Failure;
+                        result = false;
+                    }
+                    else if (iCue == Cues.Go) {
+                        iState = States.Success;
+                        result = true;
+                        iCorrect++;
+                        iCorrect2++;
+                    }
+                    Debug.Log(iState);
+                }
+                else {
+                    iState = States.Other;
+                }
+                LogTrial();
+                PunishmentOff();
+                // No response if outcome already happened.
+            }
+            // 4. End: check session finishing condition
+            else if (note.StartsWith("end"))
+            {
+                // Stop current trial and restart
+                CancelInvoke();
+                CueOff();
+                if ((iTrial < nTrial) && (iReward < rewardMax))
                 {
                     iState = States.Start;
                     PrintLog();
@@ -357,6 +475,12 @@ namespace Janelia
             }
         }
 
+        public void NextCueRatio()
+        {
+            var rnd = new System.Random();
+            iCue = (Cues)(Convert.ToInt32(rnd.Next(100) >= cueRatio) + 1);
+        }
+
         public void CheckResult()
         {
             if (task.StartsWith("Nogo"))
@@ -366,6 +490,7 @@ namespace Janelia
                     if (iCue == Cues.Nogo)
                     {
                         iState = States.Success;
+                        result = true;
                         iCorrect++;
                         iCorrect1++;
                         note = "";
@@ -376,6 +501,7 @@ namespace Janelia
                     else if (iCue == Cues.Go)
                     {
                         iState = States.Failure;
+                        result = false;
                         note = "";
                         PunishmentOn();
                         LogTrial();
@@ -386,6 +512,27 @@ namespace Janelia
             }
         }
 
+        private void CheckLatency() {
+            // modify latency depending on the cue and result
+            if (iCue == Cues.Nogo) {
+                if (result) {
+                    rewardLatency += rewardLatencyUp;
+                }
+                else {
+                    rewardLatency += rewardLatencyDown;
+                }
+                rewardLatency = Math.Clamp(rewardLatency, rewardLatencyMin, rewardLatencyMax);
+            }
+            else {
+                if (result) {
+                    punishmentLatency += punishmentLatencyDown;
+                }
+                else {
+                    punishmentLatency += punishmentLatencyUp;
+                }
+                punishmentLatency = Math.Clamp(punishmentLatency, punishmentLatencyMin, punishmentLatencyMax);
+            }
+        }
         private float GetDelay()
         {
             var rand = new System.Random();
@@ -453,7 +600,7 @@ namespace Janelia
         {
             if (_isOpen) {
                 serial.Write("f" + (int)punishmentDuration+ "\n");
-                Debug.Log("Punishment duration: " + (int)punishmentDuration + " ul");
+                Debug.Log("Punishment duration: " + (int)punishmentDuration + " s");
             }
         }
 
@@ -616,6 +763,8 @@ namespace Janelia
             taskLog.iChoice = iChoice;
             taskLog.iReward = iReward;
             taskLog.delayDuration = delayDuration;
+            taskLog.rewardLatency = rewardLatency;
+            taskLog.punishmentLatency = punishmentLatency;
             taskLog.note = note;
             Logger.Log(taskLog);
         }
@@ -630,6 +779,8 @@ namespace Janelia
             if (iTrial2 > 0)
                 output += ", go:" + iCorrect2 + "/" + iTrial2 + " (" + (100*iCorrect2/iTrial2).ToString("0") + "%)";
             output += ", " + iReward + " ul, " + (Time.time / 60).ToString("0.0") + " min";
+            if (task == "NogoGoLearn")
+                output += ", Tnogo: " + rewardLatency + "s, Tgo: " + punishmentLatency + "s";
 
             Debug.Log(output);
         }
@@ -668,6 +819,7 @@ namespace Janelia
             taskParametersLog.animalName = animalName;
             taskParametersLog.task = task;
             taskParametersLog.nTrial = nTrial;
+            taskParametersLog.cueRatio = cueRatio;
             taskParametersLog.rewardAmount = rewardAmount;
             taskParametersLog.rewardLatency = rewardLatency;
             taskParametersLog.delayDurationStart = delayDurationStart;
@@ -688,13 +840,14 @@ namespace Janelia
             public int iTrial1;
             public int iTrial2;
             public int iCorrect;
-            
             public int iCorrect1;
             public int iCorrect2;
             public Cues iCue; // 1: left, 2: right
             public Choices iChoice; // 1: left, 2: right
             public int iReward; // total reward amount in uL 
             public float delayDuration;
+            public float rewardLatency;
+            public float punishmentLatency;
             public string note;
         }; private TaskLog taskLog = new TaskLog();
 
@@ -706,10 +859,11 @@ namespace Janelia
             public string task;
             public int nTrial;
             public int rewardAmount; // reward amount per trial
-            public float rewardLatency;
             public float delayDurationStart;
             public float delayDurationMean;
             public float delayDurationEnd;
+            public int cueRatio;
+            public float rewardLatency;
             public float punishmentLatency;
             public float punishmentDuration; // infinite if zero
             public string note;

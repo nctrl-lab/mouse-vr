@@ -21,18 +21,21 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
+        int nTrial = 200, rewardAmount = 10;
+        int cueRatio = 50;
+
         float delayDurationStart = 30f;
         float delayDurationMean = 60f;
         float delayDurationEnd = 120f;
-        float rewardLatency = 0.0f;
-        float punishmentLatency = 1.5f;
+
+        float rewardLatency = 1f;
+        float punishmentLatency = 4f;
         float punishmentDuration = 10f;
 
+        public bool showConfig = false;
         bool sendSlackNotification = true;
-
         string comPortPixArt = "COM3";
         string comPortTeensy = "COM4";
-        int nTrial = 200, rewardAmount = 10;
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -104,45 +107,26 @@ namespace Janelia
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
             taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
-            delayDurationStart = EditorGUILayout.FloatField("Delay duration min (cm)", delayDurationStart);
-            delayDurationMean = EditorGUILayout.FloatField("Delay duration mean (cm)", delayDurationMean);
-            delayDurationEnd = EditorGUILayout.FloatField("Delay duration max (cm)", delayDurationEnd);
-            rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
+            EditorGUILayout.Space(10);
+            GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
+            cueRatio = EditorGUILayout.IntField("No-Go Cue ratio (0-100%)", cueRatio);
+            delayDurationStart = EditorGUILayout.FloatField("Cue distance min (cm)", delayDurationStart);
+            delayDurationMean = EditorGUILayout.FloatField("Cue distance mean (cm)", delayDurationMean);
+            delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
+            EditorGUILayout.Space(10);
+            GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
+            rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
             punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
             punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
 
-            sendSlackNotification = EditorGUILayout.Toggle("Send Slack notification", sendSlackNotification);
-
-            comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
-            comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
-
             EditorGUILayout.Space(10);
-
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Notes", GUILayout.MaxWidth(80));
             notes = EditorGUILayout.TextArea(notes, GUILayout.Height(40));
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(20);
-
-            GUILayout.Label("Ball parameters", EditorStyles.boldLabel);
-            reverseDirection = EditorGUILayout.Toggle("Reverse direction", reverseDirection);
-            allowRotationRoll = EditorGUILayout.Toggle("Allow rotation by roll", allowRotationRoll);
-            allowRotationYaw = EditorGUILayout.Toggle("Allow rotation by yaw", allowRotationYaw);
-            maxRotationSpeed = EditorGUILayout.FloatField("Max rotation speed (degree/s)", maxRotationSpeed);
-            // followPath = EditorGUILayout.Toggle("Follow path", followPath);
-            // pathRotationMix = EditorGUILayout.FloatField("Ratio btw auto and manual rotation", pathRotationMix);
-            enableKeyboard = EditorGUILayout.Toggle("Enable Keyboard", enableKeyboard);
-            logTreadmill = EditorGUILayout.Toggle("Log treadmill", logTreadmill);
-            pitchScale = EditorGUILayout.FloatField("Pitch scale (degree/pixel)", pitchScale);
-            rollScale = EditorGUILayout.FloatField("Roll scale (degree/pixel)", rollScale);
-            yawScale = EditorGUILayout.FloatField("Yaw scale (degree/pixel)", yawScale);
-            forwardMultiplier = EditorGUILayout.FloatField("Forward multiplier", forwardMultiplier);
-            sideMultiplier = EditorGUILayout.FloatField("Side multiplier", sideMultiplier);
-            
-            EditorGUILayout.Space(20);
-
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Ready"))
                 Ready();
@@ -151,6 +135,30 @@ namespace Janelia
             if (GUILayout.Button("Stop"))
                 Stop();
             EditorGUILayout.EndHorizontal();
+
+            showConfig = EditorGUILayout.Foldout(showConfig, "Config");
+            if (showConfig) {
+                GUILayout.Label("Connections", EditorStyles.boldLabel);
+                enableKeyboard = EditorGUILayout.Toggle("Enable Keyboard", enableKeyboard);
+                sendSlackNotification = EditorGUILayout.Toggle("Send Slack notification", sendSlackNotification);
+                comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
+                comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
+
+                EditorGUILayout.Space(10);
+                GUILayout.Label("Ball parameters", EditorStyles.boldLabel);
+                reverseDirection = EditorGUILayout.Toggle("Reverse direction", reverseDirection);
+                allowRotationRoll = EditorGUILayout.Toggle("Allow rotation by roll", allowRotationRoll);
+                allowRotationYaw = EditorGUILayout.Toggle("Allow rotation by yaw", allowRotationYaw);
+                maxRotationSpeed = EditorGUILayout.FloatField("Max rotation speed (degree/s)", maxRotationSpeed);
+                // followPath = EditorGUILayout.Toggle("Follow path", followPath);
+                // pathRotationMix = EditorGUILayout.FloatField("Ratio btw auto and manual rotation", pathRotationMix);
+                logTreadmill = EditorGUILayout.Toggle("Log treadmill", logTreadmill);
+                pitchScale = EditorGUILayout.FloatField("Pitch scale (degree/pixel)", pitchScale);
+                rollScale = EditorGUILayout.FloatField("Roll scale (degree/pixel)", rollScale);
+                yawScale = EditorGUILayout.FloatField("Yaw scale (degree/pixel)", yawScale);
+                forwardMultiplier = EditorGUILayout.FloatField("Forward multiplier", forwardMultiplier);
+                sideMultiplier = EditorGUILayout.FloatField("Side multiplier", sideMultiplier);
+            }
             
             EditorGUILayout.EndVertical();
         }
@@ -188,6 +196,7 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.cueRatio = cueRatio;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;
@@ -258,6 +267,7 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.cueRatio = cueRatio;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;

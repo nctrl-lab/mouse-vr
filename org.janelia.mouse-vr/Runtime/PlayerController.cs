@@ -94,10 +94,10 @@ namespace Janelia
         // socket and log can generate errors
         private void Update()
         {
-            if (Input.GetKey("q") || Input.GetKey(KeyCode.Escape))
-            {
-                Quit();
-            }
+            // if (Input.GetKey("q") || Input.GetKey(KeyCode.Escape))
+            // {
+            //     Quit();
+            // }
 
             // Keep updating parameters
             _reader.allowMovement = allowMovement;
