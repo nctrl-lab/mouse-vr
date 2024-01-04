@@ -780,7 +780,7 @@ namespace Janelia
                 output += ", go:" + iCorrect2 + "/" + iTrial2 + " (" + (100*iCorrect2/iTrial2).ToString("0") + "%)";
             output += ", " + iReward + " ul, " + (Time.time / 60).ToString("0.0") + " min";
             if (task == "NogoGoLearn")
-                output += ", Tno-go: " + rewardLatency + "s, Tgo: " + punishmentLatency + "s";
+                output += String.Format(", Tno-go: {0:0.##} s, Tgo: {1:0.##} s", rewardLatency, punishmentLatency);
 
             Debug.Log(output);
         }
@@ -795,7 +795,7 @@ namespace Janelia
             if (iTrial2 > 0)
                 payload += ", go:" + iCorrect2 + "/" + iTrial2 + " (" + (100*iCorrect2/iTrial2).ToString("0") + "%)";
             payload += ", " + iReward + " ul, " + (Time.time / 60).ToString("0.0") + " min";
-            payload += ", Tno-go: " + rewardLatency + "s, Tgo: " + punishmentLatency + "s";
+            payload += String.Format(", Tno-go: {0:0.##} s, Tgo: {1:0.##} s", rewardLatency, punishmentLatency);
             
             using (UnityWebRequest www = UnityWebRequest.Post(slackUri, "{'text':'" + payload + "'}", "application/json"))
             {
