@@ -23,6 +23,7 @@ namespace Janelia
 
         int nTrial = 200, rewardAmount = 10;
         int cueRatio = 50;
+        int rewardMax = 1500;
 
         float delayDurationStart = 30f;
         float delayDurationMean = 60f;
@@ -107,6 +108,7 @@ namespace Janelia
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
             taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
+            rewardMax = EditorGUILayout.IntField("Reward limit (ul)", rewardMax);
             EditorGUILayout.Space(10);
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
             cueRatio = EditorGUILayout.IntField("No-Go Cue ratio (0-100%)", cueRatio);
@@ -196,6 +198,7 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.rewardMax = rewardMax;
             taskController.cueRatio = cueRatio;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
@@ -267,6 +270,7 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
+            taskController.rewardMax = rewardMax;
             taskController.cueRatio = cueRatio;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;

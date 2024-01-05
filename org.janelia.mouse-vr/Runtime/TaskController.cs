@@ -43,7 +43,7 @@ namespace Janelia
 
         public float rewardLatency = 1.0f;
         public float rewardLatencyMin = 0.0f;
-        public float rewardLatencyMax = 4.0f;
+        public float rewardLatencyMax = 3.0f;
         public float rewardLatencyUp = 0.05f;
         public float rewardLatencyDown = -0.05f;
 
