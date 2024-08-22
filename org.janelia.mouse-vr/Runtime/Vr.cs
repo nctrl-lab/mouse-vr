@@ -168,7 +168,11 @@ namespace Janelia
                 return models[name].transform.position;
             else
                 return Vector3.zero;
+        }
 
+        public Vector3 GetPosition()
+        {
+            return player.transform.position;
         }
     }
 }

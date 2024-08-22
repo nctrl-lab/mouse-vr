@@ -6,6 +6,7 @@ namespace Janelia
 {
     public class MouseTreadmillReader
     {
+        public string comPortPixArt = "COM3";
         public bool allowMovement = true; // Move actor only when this is true
         public bool allowRotationYaw = false;
         public bool allowRotationRoll = false; // Rotation by roll instead of yaw
@@ -18,13 +19,13 @@ namespace Janelia
         public float yawScale = 0.112f; // Calibaration scale for yaw (degree / pixel)
         public float forwardMultiplier = 1f;
         public float sideMultiplier = 1f;
-        public const float BALL_DIAMETER_INCH = 16f; // 16 inch = 40.64 cm
-        public const float BALL_ARC_LENGTH_PER_DEGREE = BALL_DIAMETER_INCH * 0.254f * Mathf.PI / 360; // (0.035465 dm / degree)
+        public const float BALL_DIAMETER_CENTIMETER = 19.05f; // 19.05 cm
+        public const float BALL_ARC_LENGTH_PER_DEGREE = BALL_DIAMETER_CENTIMETER / 10 * Mathf.PI / 360; // unit 10 cm/degree
 
         public void Start()
         {
-            _ftdiReader = new FtdiReader();
-            _ftdiReader.Start(); // This starts a thread that continously reads serial input
+            _serialReader = new PixartReader(comPortPixArt);
+            _serialReader.Start(); // This starts a thread that continously reads serial input
         }
 
         public bool Update(ref Vector3 position, ref Vector3 rotationAngle, ref MouseTreadmillLog treadmillLog)
@@ -97,16 +98,16 @@ namespace Janelia
         public bool GetNextMessage(ref MouseTreadmillParser.Message _message)
         {
             long _timestampMs = 0;
-            if (_ftdiReader.Take(ref _ftdiReaderBuffer, ref _timestampMs)) // Read 10 packets from ftdiReader buffer
+            if (_serialReader.Take(ref _serialReaderBuffer, ref _timestampMs)) // Read 10 packets from ftdiReader buffer
             {
-                return MouseTreadmillParser.ParseMessage(ref _message, _ftdiReaderBuffer, _timestampMs); // Merge 10 packets to get the sum of dx0, dy0, dx1, and dy1
+                return MouseTreadmillParser.ParseMessage(ref _message, _serialReaderBuffer, _timestampMs); // Merge 10 packets to get the sum of dx0, dy0, dx1, and dy1
             }
             return false;
         }
 
         public void OnDisable()
         {
-            _ftdiReader.OnDisable(); // Disconnect FTDI device
+            _serialReader.OnDisable(); // Disconnect FTDI device
         }
 
         public void LogParameters()
@@ -122,7 +123,7 @@ namespace Janelia
             parameterLog.yawScale = yawScale;
             parameterLog.forwardMultiplier = forwardMultiplier;
             parameterLog.sideMultiplier = sideMultiplier;
-            parameterLog.ballDiameterInch = BALL_DIAMETER_INCH;
+            parameterLog.ballDiameterCentimeter = BALL_DIAMETER_CENTIMETER;
             parameterLog.ballArcLengthPerDegree = BALL_ARC_LENGTH_PER_DEGREE;
             Logger.Log(parameterLog);
         }
@@ -154,12 +155,12 @@ namespace Janelia
             public float yawScale;
             public float forwardMultiplier = 1f;
             public float sideMultiplier = 1f;
-            public float ballDiameterInch;
+            public float ballDiameterCentimeter;
             public float ballArcLengthPerDegree;
         }; public MouseTreadmillParameterLog parameterLog = new MouseTreadmillParameterLog(); 
 
-        private FtdiReader _ftdiReader;
-        private Byte[] _ftdiReaderBuffer = new byte[FtdiReader.READ_SIZE_BYTES];
+        private PixartReader _serialReader;
+        private Byte[] _serialReaderBuffer = new byte[PixartReader.READ_SIZE_BYTES];
 
         private MouseTreadmillParser.Message _message = new MouseTreadmillParser.Message();
     }
