@@ -21,9 +21,9 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
-        int nTrial = 200, rewardAmount = 10;
+        int nTrial = 500, rewardAmount = 15;
+        int rewardMax = 900;
         int cueRatio = 50;
-        int rewardMax = 1500;
 
         float delayDurationStart = 30f;
         float delayDurationMean = 60f;
@@ -34,9 +34,9 @@ namespace Janelia
         float punishmentDuration = 10f;
 
         public bool showConfig = false;
-        bool sendSlackNotification = true;
-        string comPortPixArt = "COM3";
-        string comPortTeensy = "COM4";
+        bool sendSlackNotification = false;
+        string comPortPixArt = "COM5";
+        string comPortTeensy = "COM8";
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -45,11 +45,14 @@ namespace Janelia
         bool enableKeyboard = false;
         float maxRotationSpeed = 360.0f;
         // float pathRotationMix = 0.2f;
-        float pitchScale = 0.3515625f;
-        float rollScale = 0.0f;
+        float pitchScale = 3.333333f;
+        float rollScale = 2.8f;
         float yawScale = 0.0f;
         float forwardMultiplier = 1f;
         float sideMultiplier = 1f;
+
+        float successITI = 2.0f;
+        float failureITI = 10.0f;
 
 
         [MenuItem("Window/MouseVR")]
@@ -108,19 +111,21 @@ namespace Janelia
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
             taskIndex = EditorGUILayout.Popup("Task type", taskIndex, taskList);
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
-            rewardMax = EditorGUILayout.IntField("Reward limit (ul)", rewardMax);
             EditorGUILayout.Space(10);
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
-            cueRatio = EditorGUILayout.IntField("No-Go Cue ratio (0-100%)", cueRatio);
-            delayDurationStart = EditorGUILayout.FloatField("Cue distance min (cm)", delayDurationStart);
-            delayDurationMean = EditorGUILayout.FloatField("Cue distance mean (cm)", delayDurationMean);
-            delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
-            EditorGUILayout.Space(10);
+            cueRatio = EditorGUILayout.IntField("Cue ratio (0-100%)", cueRatio);
+            successITI = EditorGUILayout.FloatField("successITI (s)", successITI);
+            failureITI = EditorGUILayout.FloatField("failureITI (s)", failureITI);
+            // delayDurationStart = EditorGUILayout.FloatField("Cue distance min (cm)", delayDurationStart);
+            // delayDurationMean = EditorGUILayout.FloatField("Cue distance mean (cm)", delayDurationMean);
+            // delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
+            // EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
             rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
-            punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
-            punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
+            rewardMax = EditorGUILayout.IntField("Maximum Reward (uL)", rewardMax);
+            // punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
+            // punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
 
             EditorGUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
@@ -198,8 +203,9 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
-            taskController.rewardMax = rewardMax;
             taskController.cueRatio = cueRatio;
+            taskController.successITI = successITI;
+            taskController.failureITI = failureITI;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;
@@ -270,13 +276,15 @@ namespace Janelia
             taskController.animalName = animalList[animalIndex];
             taskController.task = taskList[taskIndex];
             taskController.nTrial = nTrial;
-            taskController.rewardMax = rewardMax;
             taskController.cueRatio = cueRatio;
+            taskController.successITI = successITI;
+            taskController.failureITI = failureITI;
             taskController.delayDurationStart = delayDurationStart;
             taskController.delayDurationMean = delayDurationMean;
             taskController.delayDurationEnd = delayDurationEnd;
             taskController.rewardLatency = rewardLatency;
             taskController.rewardAmount = rewardAmount;
+            taskController.rewardMax = rewardMax;
             taskController.punishmentLatency = punishmentLatency;
             taskController.punishmentDuration = punishmentDuration;
             taskController.note = notes;
@@ -318,6 +326,7 @@ namespace Janelia
         {
             taskController.Quit();
         }
+
 
         GameObject player, environment, mainCamera, mainLight;
 
