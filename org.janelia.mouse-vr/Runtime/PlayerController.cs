@@ -25,7 +25,7 @@ namespace Janelia
         public float sideMultiplier = 1f;
         public bool enableKeyboard = false;
         public float keyboardSpeed = 3.0f; // 30 cm per second
-        public string comPortPixArt = "COM3";
+        public string comPortPixArt = "COM7";
 
         // Check physics setting is correct
         private void Awake()
@@ -147,8 +147,8 @@ namespace Janelia
             //      3) Add PhysicMaterial to set up friction.
             //      4) Use Rigidbody.velocity, instead of transform.Translate or rigidbody.MovePosition.
 
-            _rigidbody.MovePosition(_position); // use this if there will be no collision
-            //_rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
+            // _rigidbody.MovePosition(_position); // use this if there will be no collision
+            _rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
             
             if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation - _rotationPrev);

@@ -6,7 +6,7 @@ namespace Janelia
 {
     public class MouseTreadmillReader
     {
-        public string comPortPixArt = "COM3";
+        public string comPortPixArt = "COM7";
         public bool allowMovement = true; // Move actor only when this is true
         public bool allowRotationYaw = false;
         public bool allowRotationRoll = false; // Rotation by roll instead of yaw

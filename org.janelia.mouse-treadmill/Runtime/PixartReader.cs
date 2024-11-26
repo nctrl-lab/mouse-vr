@@ -37,7 +37,7 @@ namespace Janelia
         public const int PACKET_SIZE = 6; // 12 for FTDI, 6 for PixArt ball reader
         public const int READ_SIZE_BYTES = 60;
 
-        public string comPort = "COM3";
+        public string comPort = "COM7";
         public PixartReader(string comPortPixart)
         {
             comPort = comPortPixart;

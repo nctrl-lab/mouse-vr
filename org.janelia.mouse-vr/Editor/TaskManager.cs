@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Ports;
 using UnityEngine;
 using UnityEditor;
 
@@ -21,7 +22,7 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
-        int nTrial = 500, rewardAmount = 15;
+        int nTrial = 500, rewardAmount = 10;
         int rewardMax = 900;
         int cueRatio = 50;
 
@@ -35,8 +36,8 @@ namespace Janelia
 
         public bool showConfig = false;
         bool sendSlackNotification = false;
-        string comPortPixArt = "COM5";
-        string comPortTeensy = "COM8";
+        string comPortPixArt = "COM7";
+        string comPortTeensy = "COM4";
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -51,8 +52,11 @@ namespace Janelia
         float forwardMultiplier = 1f;
         float sideMultiplier = 1f;
 
-        float successITI = 2.0f;
-        float failureITI = 10.0f;
+        float successITI = 5.0f;
+        float failureITI = 15.0f;
+
+        // Teensy for single reward
+        public SerialPort serial_temp;
 
 
         [MenuItem("Window/MouseVR")]
@@ -165,6 +169,8 @@ namespace Janelia
                 yawScale = EditorGUILayout.FloatField("Yaw scale (degree/pixel)", yawScale);
                 forwardMultiplier = EditorGUILayout.FloatField("Forward multiplier", forwardMultiplier);
                 sideMultiplier = EditorGUILayout.FloatField("Side multiplier", sideMultiplier);
+                // if (GUILayout.Button("Reward"))
+                //     Water();   //here!1 
             }
             
             EditorGUILayout.EndVertical();
@@ -305,6 +311,7 @@ namespace Janelia
             playerController.yawScale = yawScale;
             playerController.forwardMultiplier = forwardMultiplier;
             playerController.sideMultiplier = sideMultiplier;
+            playerController.comPortPixArt = comPortPixArt;
 
             // Start application
             UnityEditor.EditorApplication.isPlaying = true;
@@ -326,6 +333,32 @@ namespace Janelia
         {
             taskController.Quit();
         }
+
+        // private void Water()
+        // {
+        //     serial_temp = new SerialPort(comPortPixArt, 115200);
+        //     try
+        //     {
+        //         serial_temp.Open();
+        //         if (serial_temp.IsOpen)
+        //         {
+        //             serial_temp.Write("w");
+        //             Debug.Log("Reward");
+        //         }
+        //     }
+        //     catch
+        //     {
+        //         Debug.Log(serial_temp + " is not available");
+        //     }
+        //     // if (_isOpen)
+        //     // {
+        //     //     // Send message to Teensy to give the reward
+        //     //     serial.Write("w");
+        //     //     iReward += rewardAmount;
+        //     //     Debug.Log("Reward");
+        //     // }
+        //     // taskController.Reward();
+        // }
 
 
         GameObject player, environment, mainCamera, mainLight;
