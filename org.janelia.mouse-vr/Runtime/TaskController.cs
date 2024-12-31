@@ -506,6 +506,78 @@ namespace Janelia
                 }
             }
         }
+        public void Zigzag_A_superEasy()
+        {
+            /// Zigzag task for Alternation task - easy mode///
+            if (note == "start")
+            {
+                // Debug.Log("start");
+                if (cueRatio == 50) {
+                    if (cChoice == Choices.None){
+                        NextCue(2);
+                    }
+                    else if (cChoice == Choices.Left) {
+                        cChoice = Choices.Right;
+                    }
+                    else if (cChoice == Choices.Right) {
+                        cChoice = Choices.Left;
+                    }
+                }
+                else {
+                    NextCueRatio();
+                }
+                iState = States.Delay;
+                iTrial++;
+                Debug.Log("cChoice: " + cChoice);
+                // CueOn(); // Transport
+                vr.Teleport("ss");
+                LogTrial();
+            }
+            else if (note.StartsWith("ses") && iState == States.Delay) // delay end cue on
+            {
+                iState = States.Choice;
+                if (cChoice == Choices.Left) {
+                    vr.Teleport("sl");
+                }
+                else if (cChoice == Choices.Right) {
+                    vr.Teleport("sr");
+                }
+                LogTrial();
+            }
+            else if (note.StartsWith("sl") && iState == States.Choice) // left choice
+            {
+                iState = States.Success;
+                iCorrect++;
+                iTrial1++;
+                Reward();
+                LogTrial();
+            }
+            else if (note.StartsWith("sr") && iState == States.Choice) // right choice
+            {
+                iState = States.Success;
+                iCorrect++;
+                iTrial2++;
+                Reward();
+                LogTrial();
+            }
+            else if (note.StartsWith("se") && iState == States.Success) // tiral end
+            {
+                CancelInvoke();
+                LogTrial();
+                // CueOff();
+                if ((iTrial < nTrial) && (iReward < rewardMax))
+                {
+                    iState = States.Start;
+                    PrintLog();
+                }
+                else
+                {
+                    iState = States.Standby;
+                    PrintLog();
+                    Quit();
+                }
+            }
+        }
         public void Zigzag_A_easy()
         {
             /// Zigzag task for Alternation task - easy mode///
@@ -537,10 +609,10 @@ namespace Janelia
             {
                 iState = States.Choice;
                 if (cChoice == Choices.Left) {
-                    vr.Teleport("er");
+                    vr.Teleport("el");
                 }
                 else if (cChoice == Choices.Right) {
-                    vr.Teleport("el");
+                    vr.Teleport("er");
                 }
                 LogTrial();
             }
@@ -548,12 +620,16 @@ namespace Janelia
             {
                 iState = States.Success;
                 Reward();
+                iCorrect++;
+                iTrial1++;
                 LogTrial();
             }
             else if (note.StartsWith("er") && iState == States.Choice) // right choice
             {
                 iState = States.Success;
                 Reward();
+                iCorrect++;
+                iTrial2++;
                 LogTrial();
             }
             else if (note.StartsWith("ee") && iState == States.Success) // tiral end
@@ -605,10 +681,10 @@ namespace Janelia
             {
                 iState = States.Choice;
                 if (cChoice == Choices.Left) {
-                    vr.Teleport("zr");
+                    vr.Teleport("zl");
                 }
                 else if (cChoice == Choices.Right) {
-                    vr.Teleport("zl");
+                    vr.Teleport("zr");
                 }
                 LogTrial();
             }
@@ -616,12 +692,16 @@ namespace Janelia
             {
                 iState = States.Success;
                 Reward();
+                iCorrect++;
+                iTrial1++;
                 LogTrial();
             }
             else if (note.StartsWith("zr") && iState == States.Choice) // right choice
             {
                 iState = States.Success;
                 Reward();
+                iCorrect++;
+                iTrial2++;
                 LogTrial();
             }
             else if (note.StartsWith("ze") && iState == States.Success) // tiral end
@@ -645,16 +725,17 @@ namespace Janelia
         
         public void Alter()
         {
-            /// Alternative task ///
+            /// Alternation task ///
             // 1. Start: teleport animal / place reward cue
             if (note == "start")
             {
-               if (_isOpen)
-                {
-                    serial.Write("s"); // start
-                }
-                // Debug.Log("start");
-                iState = States.Choice;
+                // Debug.Log("start" );
+                // if (_isOpen)
+                //     {
+                //         serial.Write("s"); // start
+                //     }
+                // Debug.Log("iState: "+ iState);
+                iState = States.Delay;
                 iTrial++;
                 if (iChoice == Choices.Left) {
                     cChoice = Choices.Right;
@@ -666,22 +747,36 @@ namespace Janelia
                 // CueOn(); // Transport
                 vr.Teleport("as");
                 LogTrial();
+                // Debug.Log("iState: "+ iState);
+            }
+            else if (note.StartsWith("aes") && iState == States.Delay) // delay end
+            {
+                // Debug.Log("iState: "+ iState);
+                // Debug.Log("teleport");
+                iState = States.Choice;
+                vr.Teleport("at");
+                LogTrial();
+                // Debug.Log("iState: "+ iState);
             }
             // 2. Target:
             else if (note.StartsWith("ar"))
             {
+                // Debug.Log("iState: "+ iState);
+                // Debug.Log("right choice" );
                 if (iState == States.Choice)
                 {
-                    if (_isOpen)
-                    {
-                        serial.Write("r"); // right
-                    }
-                    // Debug.Log("Right");
+                    // Debug.Log("right choice" );
+                    // if (_isOpen)
+                    // {
+                    //     serial.Write("r"); // right
+                    // }
+                    Debug.Log("Right");
                     if (cChoice == Choices.Right || cChoice == Choices.None)
                     {
                         iState = States.Success;
                         iCorrect++;
                         iCorrect2++;
+                        // Debug.Log("I'm here" );
                         Reward();
                         Debug.Log("=================== SUCCESS ===================");
                     }
@@ -696,21 +791,25 @@ namespace Janelia
                 }
                 LogTrial();
                 // Debug.Log("iState: " + iState);
+                // Debug.Log("iState: "+ iState);
             }
             else if (note.StartsWith("al"))
             {
+                // Debug.Log("iState: "+ iState);
+                // Debug.Log("left choice" );
                 if (iState == States.Choice)
                 {
-                    if (_isOpen)
-                    {
-                        serial.Write("l"); // left
-                    }
-                    // Debug.Log("Left" );
+                    // if (_isOpen)
+                    // {
+                    //     serial.Write("l"); // left
+                    // }
+                    Debug.Log("Left" );
                     if (cChoice == Choices.Left || cChoice == Choices.None)
                     {
                         iState = States.Success;
                         iCorrect++;
                         iCorrect1++;
+                        // Debug.Log("I'm here" );
                         Reward();
                         Debug.Log("=================== SUCCESS ===================");
                     }
@@ -726,13 +825,15 @@ namespace Janelia
                 }
                 LogTrial();
                 // Debug.Log("iState: " + iState);
+                // Debug.Log("iState: "+ iState);
             }
             else if (note.StartsWith("ae0") || note.StartsWith("ae1")) // End
             {
-                if (_isOpen)
-                {
-                    serial.Write("e"); // end
-                }
+                // Debug.Log("iState: "+ iState);
+                // if (_isOpen)
+                // {
+                //     serial.Write("e"); // end
+                // }
                 // Stop current trial and restart
                 CancelInvoke();
                 // CueOff();
@@ -747,6 +848,7 @@ namespace Janelia
                     LogTrial();
                     Quit();
                 }
+                // Debug.Log("iState: "+ iState);
             }
         }
         public void Linear_B()
@@ -1043,6 +1145,24 @@ namespace Janelia
             yield return new WaitForSeconds(delay);
             iState = States.Start;
             Vr.BlankDisplay();
+        }
+        public void Restart()
+        {
+            CancelInvoke();
+            iState = States.Failure;
+            LogTrial();
+            // CueOff();
+            if ((iTrial < nTrial) && (iReward < rewardMax))
+            {
+                iState = States.Start;
+                PrintLog();
+            }
+            else
+            {
+                iState = States.Standby;
+                PrintLog();
+                Quit();
+            }
         }
         public void NextCue(int nCue)
         {
@@ -1451,6 +1571,10 @@ namespace Janelia
         
         public void Quit()
         {
+            if (_isOpen)
+            {
+                serial.Write("e");
+            }
             if (sendSlackNotification && slackUri != "") {
                 StartCoroutine(Slack());
             }
@@ -1494,12 +1618,12 @@ namespace Janelia
                 if (task == "NogoGoLearn")
                     output += String.Format(", Tno-go: {0:0.##} s, Tgo: {1:0.##} s", rewardLatency, punishmentLatency);
             }
-            else if (task == "Alter" && iTrial > 0)
-            {
-                output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
-                // trial, success, perf, left, right
-            }
-            else if ((task == "Beacon" || task == "Zigzag") && iTrial>0)
+            // else if (task == "Alter" && iTrial > 0)
+            // {
+            //     output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
+            //     // trial, success, perf, left, right
+            // }
+            else if ((task == "Beacon" || task == "Zigzag" || task == "Alter" || task == "Zigzag_A" || task == "Zigzag_A_easy" || task == "Zigzag_A_superEasy") && iTrial>0)
             {
                 output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
             }

@@ -22,8 +22,8 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
-        int nTrial = 500, rewardAmount = 10;
-        int rewardMax = 900;
+        int nTrial = 500, rewardAmount = 15;
+        int rewardMax = 1100;
         int cueRatio = 50;
 
         float delayDurationStart = 30f;
@@ -36,8 +36,8 @@ namespace Janelia
 
         public bool showConfig = false;
         bool sendSlackNotification = false;
-        string comPortPixArt = "COM7";
-        string comPortTeensy = "COM4";
+        string comPortPixArt = "COM4";
+        string comPortTeensy = "COM3";
         bool allowRotationYaw = false;
         bool allowRotationRoll = false;
         // bool followPath = false;
@@ -47,7 +47,7 @@ namespace Janelia
         float maxRotationSpeed = 360.0f;
         // float pathRotationMix = 0.2f;
         float pitchScale = 3.333333f;
-        float rollScale = 2.8f;
+        float rollScale = 3.333333f;
         float yawScale = 0.0f;
         float forwardMultiplier = 1f;
         float sideMultiplier = 1f;
@@ -89,7 +89,7 @@ namespace Janelia
             {
                 using (StreamWriter file = new StreamWriter(animalListFile))
                 {
-                    file.Write("ANM001,ANM002");
+                    file.Write("test,ANM001,ANM002");
                 }
             }
             using (StreamReader reader = File.OpenText(animalListFile))
@@ -102,7 +102,7 @@ namespace Janelia
             {
                 using (StreamWriter file = new StreamWriter(taskListFile))
                 {
-                    file.Write("Nogo");
+                    file.Write("Alter,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A,Beacon,Nogo");
                 }
             }
             using (StreamReader reader = File.OpenText(taskListFile))
@@ -171,6 +171,13 @@ namespace Janelia
                 sideMultiplier = EditorGUILayout.FloatField("Side multiplier", sideMultiplier);
                 // if (GUILayout.Button("Reward"))
                 //     Water();   //here!1 
+                EditorGUILayout.Space(20);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("water"))
+                    Water();
+                if (GUILayout.Button("restart"))
+                    Restart();
+                EditorGUILayout.EndHorizontal();
             }
             
             EditorGUILayout.EndVertical();
@@ -332,6 +339,14 @@ namespace Janelia
         private void Stop()
         {
             taskController.Quit();
+        }
+        private void Water()
+        {
+            taskController.Reward();
+        }
+        private void Restart()
+        {
+            taskController.Restart();
         }
 
         // private void Water()

@@ -125,8 +125,8 @@ namespace Janelia
             {
                 float cos = Mathf.Cos(_rotation.y * Mathf.Deg2Rad);
                 float sin = Mathf.Sin(_rotation.y * Mathf.Deg2Rad);
-                float forward = Input.GetAxis("Vertical") * Time.deltaTime;
-                float side = Input.GetAxis("Horizontal") * Time.deltaTime;
+                float forward = Input.GetAxis("Vertical") * Time.deltaTime * forwardMultiplier;
+                float side = Input.GetAxis("Horizontal") * Time.deltaTime * sideMultiplier;
                 if (allowRotationYaw || allowRotationRoll)
                 {
                     _position.z += forward * cos * keyboardSpeed;
