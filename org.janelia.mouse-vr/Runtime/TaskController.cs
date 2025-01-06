@@ -1382,10 +1382,18 @@ namespace Janelia
                     if (cChoice == Choices.Left)
                     {
                         vr.Teleport("10");
+                        if (_isOpen)
+                        {
+                            serial.Write("L");
+                        }
                     }
                     else if (cChoice == Choices.Right)
                     {
                         vr.Teleport("01");
+                        if (_isOpen)
+                        {
+                            serial.Write("R");
+                        }
                     }   
                 }
             }
