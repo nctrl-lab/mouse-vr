@@ -730,10 +730,10 @@ namespace Janelia
             if (note == "start")
             {
                 // Debug.Log("start" );
-                // if (_isOpen)
-                //     {
-                //         serial.Write("s"); // start
-                //     }
+                if (_isOpen)
+                    {
+                        serial.Write("s"); // start
+                    }
                 // Debug.Log("iState: "+ iState);
                 iState = States.Delay;
                 iTrial++;
@@ -753,6 +753,10 @@ namespace Janelia
             {
                 // Debug.Log("iState: "+ iState);
                 // Debug.Log("teleport");
+                if (_isOpen)
+                {
+                    serial.Write("c"); // start
+                }
                 iState = States.Choice;
                 vr.Teleport("at");
                 LogTrial();
@@ -766,10 +770,10 @@ namespace Janelia
                 if (iState == States.Choice)
                 {
                     // Debug.Log("right choice" );
-                    // if (_isOpen)
-                    // {
-                    //     serial.Write("r"); // right
-                    // }
+                    if (_isOpen)
+                    {
+                        serial.Write("r"); // right
+                    }
                     Debug.Log("Right");
                     if (cChoice == Choices.Right || cChoice == Choices.None)
                     {
@@ -799,10 +803,10 @@ namespace Janelia
                 // Debug.Log("left choice" );
                 if (iState == States.Choice)
                 {
-                    // if (_isOpen)
-                    // {
-                    //     serial.Write("l"); // left
-                    // }
+                    if (_isOpen)
+                    {
+                        serial.Write("l"); // left
+                    }
                     Debug.Log("Left" );
                     if (cChoice == Choices.Left || cChoice == Choices.None)
                     {

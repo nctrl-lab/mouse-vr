@@ -23,7 +23,7 @@ namespace Janelia
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
         int nTrial = 500, rewardAmount = 15;
-        int rewardMax = 1100;
+        int rewardMax = 1000;
         int cueRatio = 50;
 
         float delayDurationStart = 30f;
@@ -47,7 +47,7 @@ namespace Janelia
         float maxRotationSpeed = 360.0f;
         // float pathRotationMix = 0.2f;
         float pitchScale = 3.333333f;
-        float rollScale = 3.333333f;
+        float rollScale = 2.8f;
         float yawScale = 0.0f;
         float forwardMultiplier = 1f;
         float sideMultiplier = 1f;
