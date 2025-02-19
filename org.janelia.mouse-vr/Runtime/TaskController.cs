@@ -68,6 +68,7 @@ namespace Janelia
         public string comPort = "COM8";
         public SerialPort serial;
         public bool sendSlackNotification = true;
+        public bool enableNIDQ = false;
         
 
         // Socket communication
@@ -730,10 +731,10 @@ namespace Janelia
             if (note == "start")
             {
                 // Debug.Log("start" );
-                if (_isOpen)
-                    {
-                        serial.Write("s"); // start
-                    }
+                if (_isOpen && enableNIDQ)
+                {
+                    serial.Write("s"); // start
+                }
                 // Debug.Log("iState: "+ iState);
                 iState = States.Delay;
                 iTrial++;
@@ -753,7 +754,7 @@ namespace Janelia
             {
                 // Debug.Log("iState: "+ iState);
                 // Debug.Log("teleport");
-                if (_isOpen)
+                if (_isOpen && enableNIDQ)
                 {
                     serial.Write("c"); // start
                 }
@@ -770,7 +771,7 @@ namespace Janelia
                 if (iState == States.Choice)
                 {
                     // Debug.Log("right choice" );
-                    if (_isOpen)
+                    if (_isOpen && enableNIDQ)
                     {
                         serial.Write("r"); // right
                     }
@@ -803,7 +804,7 @@ namespace Janelia
                 // Debug.Log("left choice" );
                 if (iState == States.Choice)
                 {
-                    if (_isOpen)
+                    if (_isOpen && enableNIDQ)
                     {
                         serial.Write("l"); // left
                     }
@@ -834,7 +835,7 @@ namespace Janelia
             else if (note.StartsWith("ae0") || note.StartsWith("ae1")) // End
             {
                 // Debug.Log("iState: "+ iState);
-                // if (_isOpen)
+                // if (_isOpen && enableNIDQ)
                 // {
                 //     serial.Write("e"); // end
                 // }
@@ -967,7 +968,6 @@ namespace Janelia
                     else{
                         iState = States.Failure;
                     }
-                    iTrial++;
                     CancelInvoke();
                     LogTrial();
                     if ((iTrial < nTrial) && (iReward < rewardMax))
@@ -1051,7 +1051,6 @@ namespace Janelia
                     else{
                         iState = States.Failure;
                     }
-                    iTrial++;
                     CancelInvoke();
                     LogTrial();
                     if ((iTrial < nTrial) && (iReward < rewardMax))
@@ -1079,7 +1078,7 @@ namespace Janelia
             /// Beacon task ///
             if (note == "start")
             {
-                if (_isOpen)
+                if (_isOpen && enableNIDQ)
                 {
                     serial.Write("s"); // start
                 }
@@ -1097,17 +1096,17 @@ namespace Janelia
                 if (cChoice == Choices.Left)
                 {
                     vr.Teleport("bl");
-                    if (_isOpen)
+                    if (_isOpen && enableNIDQ)
                     {
-                        serial.Write("L");
+                        serial.Write("L"); // left cue
                     }
                 }
                 else if (cChoice == Choices.Right)
                 {
                     vr.Teleport("br");
-                    if (_isOpen)
+                    if (_isOpen && enableNIDQ)
                     {
-                        serial.Write("R");
+                        serial.Write("R"); // right cue
                     }
                 }
                 LogTrial();   
@@ -1126,7 +1125,7 @@ namespace Janelia
                         Debug.Log("=================== SUCCESS ===================");
                         if (cChoice == Choices.Left)
                         {
-                            if (_isOpen)
+                            if (_isOpen && enableNIDQ)
                             {
                                 serial.Write("l"); // left choice
                             }
@@ -1136,7 +1135,7 @@ namespace Janelia
                         }
                         else if (cChoice == Choices.Right)
                         {
-                            if (_isOpen)
+                            if (_isOpen && enableNIDQ)
                             {
                                 serial.Write("r"); // right choice
                             }
@@ -1162,7 +1161,7 @@ namespace Janelia
                         ITI = failureITI;
                         if (cChoice == Choices.Left) // right choice
                         {
-                            if (_isOpen)
+                            if (_isOpen && enableNIDQ)
                             {
                                 serial.Write("r"); 
                             }
@@ -1171,7 +1170,7 @@ namespace Janelia
                         }
                         else if (cChoice == Choices.Right) // left choice
                         {
-                            if (_isOpen)
+                            if (_isOpen && enableNIDQ)
                             {
                                 serial.Write("l");
                             }
@@ -1186,7 +1185,6 @@ namespace Janelia
                         iState = States.Other;
                     }
                 }
-                iTrial++;
                 CancelInvoke();
                 LogTrial();
                 // CueOff();
@@ -1607,7 +1605,7 @@ namespace Janelia
         
         public void Quit()
         {
-            if (_isOpen)
+            if (_isOpen && enableNIDQ)
             {
                 serial.Write("e");
             }

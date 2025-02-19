@@ -44,6 +44,7 @@ namespace Janelia
         bool reverseDirection = false;
         bool logTreadmill = true;
         bool enableKeyboard = false;
+        bool enableNIDQ = false;
         float maxRotationSpeed = 360.0f;
         // float pathRotationMix = 0.2f;
         float pitchScale = 3.333333f;
@@ -151,6 +152,7 @@ namespace Janelia
             if (showConfig) {
                 GUILayout.Label("Connections", EditorStyles.boldLabel);
                 enableKeyboard = EditorGUILayout.Toggle("Enable Keyboard", enableKeyboard);
+                enableNIDQ = EditorGUILayout.Toggle("Enable NIDQ", enableNIDQ);
                 sendSlackNotification = EditorGUILayout.Toggle("Send Slack notification", sendSlackNotification);
                 comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
                 comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
