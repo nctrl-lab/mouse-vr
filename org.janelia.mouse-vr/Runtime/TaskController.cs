@@ -855,34 +855,30 @@ namespace Janelia
                 // Debug.Log("iState: "+ iState);
             }
         }
+        /// /////////////////////////////////////////////////////////////////////////////////////////
         public void Linear_B()
         {
             /// linear task ///
-            // 1. Start: teleport animal / place reward cue
+            // 1. Start: teleport animal to start position
             if (note == "start")
             {
                 // Debug.Log("start State " + iState);
                 iState = States.Delay;
-                if (cueRatio == 50) {
-                    NextCue(2);
-                }
-                else {
-                    NextCueRatio();
-                }
-
+                vr.Teleport("ls");
                 iTrial++;
-                CueOn(); // Transport
+                // CueOn(); // Transport
                 LogTrial();
             }
-            else if (note.StartsWith("e1")) // delay end
+            else if (note.StartsWith("le")) // delay end
             {
                 // Debug.Log("reward State " + iState);
                 iState = States.Choice;
-                CueOn(); // Transport
+                vr.Teleport("lc");
+                // CueOn(); // Transport
                 LogTrial();
             }
             // 2. Target:
-            else if (note.StartsWith("r0")) // reward
+            else if (note.StartsWith("lo")) // trial end & reward
             {
                 if (iState == States.Choice)
                 {
@@ -894,18 +890,11 @@ namespace Janelia
                 else {
                     iState = States.Other;
                 }
-            }
-            else if (note.StartsWith("e2")) // End
-            {
-                // Stop current trial and restart
-                CancelInvoke();
-                // Debug.Log("end");
-                // CueOff();
                 if ((iTrial < nTrial) && (iReward < rewardMax))
                 {
                     if (iState != States.Delay)
                     {
-                        StartCoroutine(Blackout(2f)); // black screen for 2sec
+                        StartCoroutine(Blackout(successITI)); // black screen for 2sec
                     PrintLog();
                     }
                 }
@@ -917,16 +906,11 @@ namespace Janelia
                 }
             }
         }
-        public void Zigzag()
+        public void Zigzag_B_easy()
         {
-            /// Alternative task ///
-            // 1. Start: teleport animal / place reward cue
+            // 1. Start: teleport animal 
             if (note == "start")
             {
-                if (_isOpen)
-                {
-                    serial.Write("s"); // start
-                }
                 // Debug.Log("start");
                 if (cueRatio == 50) {
                     NextCue(2);
@@ -936,78 +920,56 @@ namespace Janelia
                 }
                 iState = States.Delay;
                 iTrial++;
-                Debug.Log("cChoice: " + cChoice);
-                CueOn(); // Transport
+                Debug.Log("cue: " + cChoice);
+                vr.Teleport("gs");
+                // CueOn(); // Transport
                 LogTrial();
             }
-            else if (note.StartsWith("e")) // delay end or trial end
+            else if (note.StartsWith("ge")) // delay end
             {
-                if (note.StartsWith("es")) // delay end
+                //
+                iState = States.Choice;
+                if (cChoice == Choices.Left)
                 {
-                    iState = States.Choice;
-                    CueOn(); // Transport
-                    LogTrial();
+                    vr.Teleport("gl");
                 }
-                else
+                else if (cChoice == Choices.Right)
                 {
-                    if (note.StartsWith("el")) // left - trial end
+                    vr.Teleport("gr");
+                }   
+                // CueOn(); // Transport
+                LogTrial();
+            }
+            else if (note.StartsWith("go")) // trial end & reward
+            {
+                if (iState == States.Choice)
+                {
+                    if (cChoice == Choices.Left) // left trial end
                     {
-                        if (iState == States.Choice)
-                        {
-                            if (_isOpen)
-                            {
-                                serial.Write("l"); // left
-                            }
-                            iChoice = Choices.Left;
-                            // Debug.Log("Left" );
-                            if (cChoice == Choices.Left)
-                            {
-                                iState = States.Success;
-                                iCorrect++;
-                                iCorrect1++;
-                                Reward();
-                                Debug.Log("=================== SUCCESS ===================");
-                            }
-                            else{
-                                iState = States.Failure;
-                            }
-                            iTrial1++;
-                        }
-                        else {
-                            iState = States.Other;
-                        }
+                        iState = States.Success;
+                        iCorrect++;
+                        iCorrect1++;
+                        iTrial1++;
+                        iChoice = Choices.Left;
+                        Reward();
+                        Debug.Log("=================== SUCCESS ===================");
                     }
-                    else if (note.StartsWith("er")) // right - trial end
+                    else if (cChoice == Choices.Right) // Right trial end
                     {
-                        if (iState == States.Choice)
-                        {
-                            if (_isOpen)
-                            {
-                                serial.Write("r");
-                            }
-                            // Debug.Log("Right" );
-                            iChoice = Choices.Right;
-                            if (cChoice == Choices.Right)
-                            {
-                                iState = States.Success;
-                                iCorrect++;
-                                iCorrect2++;
-                                Reward();
-                                Debug.Log("=================== SUCCESS ===================");
-                            }
-                            else{
-                                iState = States.Failure;
-                            }
-                            iTrial2++;
-                        }
-                        else {
-                            iState = States.Other;
-                        }
+                        iState = States.Success;
+                        iCorrect++;
+                        iCorrect2++;
+                        iChoice = Choices.Right;
+                        iTrial2++;
+                        Reward();
+                        Debug.Log("=================== SUCCESS ===================");
                     }
-                     // Stop current trial and restart
+                    else{
+                        iState = States.Failure;
+                    }
+                    iTrial++;
                     CancelInvoke();
                     LogTrial();
-                    // CueOff();
                     if ((iTrial < nTrial) && (iReward < rewardMax))
                     {
                         StartCoroutine(Blackout(successITI));
@@ -1022,111 +984,79 @@ namespace Janelia
                         Quit();
                     }
                 }
-            }
-        }
-        public void Beacon()
-        {
-            /// Alternative task ///
-            // 1. Start: teleport animal / place reward cue
-            if (note == "start")
-            {
-                if (_isOpen)
-                {
-                    serial.Write("s"); // start
-                }
-                // Debug.Log("start");
-                // if (cueRatio == 50) {
-                //     NextCue(2);
-                // }
-                // else {
-                //     NextCueRatio();
-                // }
-                nextCueCounter();
-                iState = States.Delay;
-                iTrial++;
-                Debug.Log("cChoice: " + cChoice);
-                CueOn(); // Transport
-                LogTrial();
-            }
-            else if (note.StartsWith("e")) // delay end or trial end
-            {
-                if (note.StartsWith("es")) // delay end
-                {
-                    iState = States.Choice;
-                    CueOn(); // Transport
-                    LogTrial();
-                }
                 else
                 {
-                    if (note.StartsWith("el")) // left - trial end
+                    iState = States.Other;
+                }
+            }
+        }
+        public void Zigzag_B()
+        {
+            // 1. Start: teleport animal
+            if (note == "start")
+            {
+                // Debug.Log("start");
+                if (cueRatio == 50) {
+                    NextCue(2);
+                }
+                else {
+                    NextCueRatio();
+                }
+                iState = States.Delay;
+                iTrial++;
+                Debug.Log("cue: " + cChoice);
+                vr.Teleport("zs");
+                // CueOn(); // Transport
+                LogTrial();
+            }
+            else if (note.StartsWith("ze")) // delay end
+            {
+                //
+                iState = States.Choice;
+                if (cChoice == Choices.Left)
+                {
+                    vr.Teleport("zl");
+                }
+                else if (cChoice == Choices.Right)
+                {
+                    vr.Teleport("zr");
+                }   
+                // CueOn(); // Transport
+                LogTrial();
+            }
+            else if (note.StartsWith("zo")) // trial end & reward
+            {
+                if (iState == States.Choice)
+                {
+                    if (cChoice == Choices.Left) // left trial end
                     {
-                        if (iState == States.Choice)
-                        {
-                            if (_isOpen)
-                            {
-                                serial.Write("l"); // left
-                            }
-                            iChoice = Choices.Left;
-                            // Debug.Log("Left" );
-                            if (cChoice == Choices.Left)
-                            {
-                                iState = States.Success;
-                                iSucess = 1;
-                                iCorrect++;
-                                iCorrect1++;
-                                Reward();
-                                ITI = successITI;
-                                Debug.Log("=================== SUCCESS ===================");
-                            }
-                            else{
-                                iState = States.Failure;
-                                iSucess = 0;
-                                ITI = failureITI;
-                            }
-                            iTrial1++;
-                        }
-                        else {
-                            iState = States.Other;
-                        }
+                        iState = States.Success;
+                        iCorrect++;
+                        iCorrect1++;
+                        iTrial1++;
+                        iChoice = Choices.Left;
+                        Reward();
+                        Debug.Log("=================== SUCCESS ===================");
                     }
-                    else if (note.StartsWith("er")) // right - trial end
+                    else if (cChoice == Choices.Right) // Right trial end
                     {
-                        if (iState == States.Choice)
-                        {
-                            if (_isOpen)
-                            {
-                                serial.Write("r");
-                            }
-                            // Debug.Log("Right" );
-                            iChoice = Choices.Right;
-                            if (cChoice == Choices.Right)
-                            {
-                                iState = States.Success;
-                                iSucess = 1;
-                                iCorrect++;
-                                iCorrect2++;
-                                Reward();
-                                ITI = successITI;
-                                Debug.Log("=================== SUCCESS ===================");
-                            }
-                            else{
-                                iState = States.Failure;
-                                iSucess = 0;
-                                ITI = failureITI;
-                            }
-                            iTrial2++;
-                        }
-                        else {
-                            iState = States.Other;
-                        }
+                        iState = States.Success;
+                        iCorrect++;
+                        iCorrect2++;
+                        iChoice = Choices.Right;
+                        iTrial2++;
+                        Reward();
+                        Debug.Log("=================== SUCCESS ===================");
                     }
-                     // Stop current trial and restart
+                    else{
+                        iState = States.Failure;
+                    }
+                    iTrial++;
                     CancelInvoke();
                     LogTrial();
-                    // CueOff();
                     if ((iTrial < nTrial) && (iReward < rewardMax))
                     {
-                        StartCoroutine(Blackout(ITI));
+                        StartCoroutine(Blackout(successITI));
                         // iState = States.Start;
                         PrintLog();
                     }
@@ -1138,13 +1068,148 @@ namespace Janelia
                         Quit();
                     }
                 }
+                else
+                {
+                    iState = States.Other;
+                }
+            }
+        }
+        public void Beacon()
+        {
+            /// Beacon task ///
+            if (note == "start")
+            {
+                if (_isOpen)
+                {
+                    serial.Write("s"); // start
+                }
+                nextCueCounter();
+                iState = States.Delay;
+                iTrial++;
+                Debug.Log("cue: " + cChoice);
+                vr.Teleport("bs");
+                // CueOn(); // Transport
+                LogTrial();
+            }
+            else if (note.StartsWith("be")) // delay end
+            {
+                iState = States.Choice;
+                if (cChoice == Choices.Left)
+                {
+                    vr.Teleport("bl");
+                    if (_isOpen)
+                    {
+                        serial.Write("L");
+                    }
+                }
+                else if (cChoice == Choices.Right)
+                {
+                    vr.Teleport("br");
+                    if (_isOpen)
+                    {
+                        serial.Write("R");
+                    }
+                }
+                LogTrial();   
+            }
+            else if (note.StartsWith("bo")||note.StartsWith("bx")) // trial end
+            {
+                if (note.StartsWith("bo")) //success
+                {
+                    if (iState == States.Choice)
+                    {
+                        iState = States.Success;
+                        iSucess = 1;
+                        iCorrect++;
+                        ITI = successITI;
+                        Reward();
+                        Debug.Log("=================== SUCCESS ===================");
+                        if (cChoice == Choices.Left)
+                        {
+                            if (_isOpen)
+                            {
+                                serial.Write("l"); // left choice
+                            }
+                            iChoice = Choices.Left;
+                            iCorrect1++;
+                            iTrial1++;
+                        }
+                        else if (cChoice == Choices.Right)
+                        {
+                            if (_isOpen)
+                            {
+                                serial.Write("r"); // right choice
+                            }
+                            iChoice = Choices.Right;
+                            iCorrect2++;
+                            iTrial2++;
+                        }
+                        else{
+                            iState = States.Other;
+                        }
+                    }
+                    else{
+                        iState = States.Other;
+                    }
+                }
+                else if (note.StartsWith("bx")) //failure
+                {
+                    //
+                    if (iState == States.Choice)
+                    {
+                        iState = States.Failure;
+                        iSucess = 0;
+                        ITI = failureITI;
+                        if (cChoice == Choices.Left) // right choice
+                        {
+                            if (_isOpen)
+                            {
+                                serial.Write("r"); 
+                            }
+                            iChoice = Choices.Right;
+                            iTrial2++;
+                        }
+                        else if (cChoice == Choices.Right) // left choice
+                        {
+                            if (_isOpen)
+                            {
+                                serial.Write("l");
+                            }
+                            iChoice = Choices.Left;
+                            iTrial1++;
+                        }
+                        else{
+                            iState = States.Other;
+                        }
+                    }
+                    else{
+                        iState = States.Other;
+                    }
+                }
+                iTrial++;
+                CancelInvoke();
+                LogTrial();
+                // CueOff();
+                if ((iTrial < nTrial) && (iReward < rewardMax))
+                {
+                    StartCoroutine(Blackout(ITI));
+                    // iState = States.Start;
+                    PrintLog();
+                }
+                else
+                {
+                    iState = States.Standby;
+                    PrintLog();
+                    LogTrial();
+                    Quit();
+                }
             }
         }
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         public IEnumerator Blackout(float delay)
         {
             iState = States.Delay;
-            vr.Teleport("11");
+            vr.Teleport("ee");
             Vr.BlankDisplay();
             yield return new WaitForSeconds(delay);
             iState = States.Start;
@@ -1191,7 +1256,7 @@ namespace Janelia
                     }
                 } 
             }
-            else if (task.StartsWith("Zigzag")|| task.StartsWith("Beacon")||task.StartsWith("Zigzag_A")||task.StartsWith("Zigzag_A_easy"))
+            else if (task.StartsWith("Zigzag"))
             {
                 if (cChoice == Choices.None) {
                     cChoice = (Choices)rnd.Next(1, nCue+1);
@@ -1271,7 +1336,7 @@ namespace Janelia
             {
                 iCue = (Cues)(Convert.ToInt32(rnd.Next(100) >= cueRatio) + 1);
             }
-            else if (task.StartsWith("Zigzag")||task.StartsWith("Beacon")||task.StartsWith("Zigzag_A")||task.StartsWith("Zigzag_A_easy"))
+            else if (task.StartsWith("Zigzag"))
             {
                 cChoice = (Choices)(Convert.ToInt32(rnd.Next(100) >= cueRatio) + 1);
             }
@@ -1359,47 +1424,6 @@ namespace Janelia
             else if (task.StartsWith("Nogo"))
             {
                 Debug.Log("iChoice: " + iChoice);
-            }
-            else if (task.StartsWith("Alter"))
-            {
-                vr.Teleport("10");
-            }
-            else if (task.StartsWith("Linear_B"))
-            {
-                if (iState == States.Delay)
-                {
-                    vr.Teleport("10");
-                }
-                else if (iState == States.Choice)
-                {
-                    vr.Teleport("20");
-                }
-            }
-            else if (task.StartsWith("Zigzag")||task.StartsWith("Beacon"))
-            {
-                if (iState == States.Delay) // start
-                {
-                    vr.Teleport("00");
-                }
-                else if (iState == States.Choice) // cue start
-                {
-                    if (cChoice == Choices.Left)
-                    {
-                        vr.Teleport("10");
-                        if (_isOpen)
-                        {
-                            serial.Write("L");
-                        }
-                    }
-                    else if (cChoice == Choices.Right)
-                    {
-                        vr.Teleport("01");
-                        if (_isOpen)
-                        {
-                            serial.Write("R");
-                        }
-                    }   
-                }
             }
         }
 
@@ -1635,11 +1659,11 @@ namespace Janelia
             //     output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
             //     // trial, success, perf, left, right
             // }
-            else if ((task == "Beacon" || task == "Zigzag" || task == "Alter" || task == "Zigzag_A" || task == "Zigzag_A_easy" || task == "Zigzag_A_superEasy") && iTrial>0)
+            else if ((task == "Beacon" || task == "Zigzag_B" || task == "Zigzag_B_easy" || task == "Alter" || task == "Zigzag_A" || task == "Zigzag_A_easy" || task == "Zigzag_A_superEasy") && iTrial>0)
             {
                 output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
             }
-            else if (task == "Linear_A" && iTrial > 0)
+            else if ((task == "Linear_A" || task == "Linear_B" )&& iTrial > 0)
             {
                 output += iTrial;
             }
