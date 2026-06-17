@@ -1,94 +1,90 @@
-const unsigned long airDuration = 200000;  // 200 ms
-const unsigned long intervalDuration = 300000; // 300 ms
-unsigned long finishDuration = 10000000; // infinite if zero
-
 unsigned long now;
 
-unsigned long airIntervalTime = 0;
-unsigned long airFinalTime = 0;
-
-unsigned long waterDuration = 50000;
+unsigned long waterDuration = 65000;
 unsigned long waterTime = 0;
 
-const unsigned long waterAmount[] = {0, 8000, 16000, 24000, 32000, 40000, 44000, 48000, 51000, 55000, 58000, 61000, 64000, 66000, 68000, 70000};
-// waterDuration: 58 ms = 10 ul
-// 40 ms = 5 ul
+const unsigned long waterAmount[] = {13000,26000,39000,52000,65000,72000,79000,86000,93000,100000,107400,114800,122200,129600,137000};
 
+// 2026.06.02
+// 05ul = 65ms
+// 10ul = 100ms
+// 15ul = 137ms
 
-#define STANDBY 0
-#define ON 1
-#define OFF 2
-#define DONE 3
-int airState = STANDBY;
 bool waterState = false;
-const int airPin = 0;
-const int waterPin = 1;
+bool triggerState = false;
+
+#define triggerPin 0
+#define waterPin   1
+#define startPin   2
+#define endPin     3
+#define leftPin    4
+#define rewardPin  5
+
+// startPin: HIGH = delay start, LOW = cue start
+// endPin: HIGH = outcome start, LOW = outcome end / next trial start
+// leftPin: HIGH = left, LOW = right
+
+#define rewardOn()  {digitalWriteFast(waterPin, HIGH); digitalWriteFast(rewardPin, HIGH);}
+#define rewardOff() {digitalWriteFast(waterPin, LOW);  digitalWriteFast(rewardPin, LOW);}
+#define reset()     {rewardOff(); digitalWriteFast(triggerPin, LOW); digitalWriteFast(startPin, LOW); digitalWriteFast(endPin, LOW); digitalWriteFast(leftPin, LOW); waterState = false; triggerState = false;}
 
 void setup() {
     Serial.begin(115200);
-    pinMode(airPin, OUTPUT);
+    Serial.setTimeout(10);
+    pinMode(triggerPin, OUTPUT);
     pinMode(waterPin, OUTPUT);
-    digitalWriteFast(airPin, LOW);
-    digitalWriteFast(waterPin, LOW);
+    pinMode(startPin, OUTPUT);
+    pinMode(endPin, OUTPUT);
+    pinMode(leftPin, OUTPUT);
+    pinMode(rewardPin, OUTPUT);
+    reset();
     Serial.println("Ready");
 }
 
 void loop() {
     now = micros();
     checkSerial();
-    checkAir();
     checkWater();
 }
 
 void checkSerial() {
     if (Serial.available()) {
-    	  char cmd = Serial.read();
-    	
+        char cmd = Serial.read();
+
         if (cmd == '?' || cmd == 'h') {
             Serial.println("==== Help ====");
-            Serial.println("r: give water reward");
-            Serial.println("p: give air puff");
-            Serial.println("0: turn off both water and air values");
-            Serial.println("i: open the water value for 1 sec");
-            Serial.println("v10: set the water volume to 10 ul");
+            Serial.println("w: give water reward");
+            Serial.println("0: reset (all outputs off)");
+            Serial.println("i: open the water valve for 1 sec");
+            Serial.println("v10: set the water volume to 10 ul (1-15)");
             Serial.println("d58000: set the water valve duration as 58 msec");
-            Serial.println("f10: set the air puff duration to 10 sec");
-        }
-        else if (cmd == 'p') {
-            if (airState == STANDBY  || airState == DONE) {
-                airState = ON;
-                airFinalTime = now;
-                airIntervalTime = now;
-                digitalWriteFast(airPin, HIGH);
-                Serial.println("Air start");
-            }
+            Serial.println("s: session start (trigger on)");
+            Serial.println("S: trial start (delay start)");
+            Serial.println("L: left cue / R: right cue (cue start)");
+            Serial.println("l: left choice / r: right choice (outcome start)");
+            Serial.println("e: session end");
         }
         else if (cmd == '0') {
-            airState = STANDBY;
-            waterState = false;
-            digitalWriteFast(airPin, LOW);
-            digitalWriteFast(waterPin, LOW);
-            Serial.println("Done");
+            reset();
         }
-        else if (cmd == 'r')
+        else if (cmd == 'w')
         {
             waterState = true;
             waterTime = now;
-            digitalWriteFast(waterPin, HIGH);
-            Serial.println("Water start");
+            rewardOn();
         }
         else if (cmd == 'i')
         {
-            digitalWriteFast(waterPin, HIGH);
+            rewardOn();
             delay(1000);
-            digitalWriteFast(waterPin, LOW);
+            rewardOff();
         }
         else if (cmd == 'v')
         {
             int volume = Serial.parseInt();
             if (volume >= 1 && volume <= 15)
             {
-                waterDuration = waterAmount[volume];
+                waterDuration = waterAmount[volume - 1];
                 Serial.print("Water volume: ");
                 Serial.println(volume);
                 Serial.print("Water duration: ");
@@ -117,53 +113,54 @@ void checkSerial() {
                 Serial.println(" (unchanged)");
             }
         }
-        else if (cmd == 'f')
+        else if (cmd == 's' && triggerState == false)  // session start: trigger on, enables task commands
         {
-            int duration = Serial.parseInt();
-            if (duration >= 1 && duration <= 100)
-            {
-                finishDuration = duration*1000000;
-                Serial.print("Air duration: ");
-                Serial.println(finishDuration);
-            }
-            else
-            {
-                Serial.print("Air duration: ");
-                Serial.print(finishDuration);
-                Serial.println(" (unchanged)");
-            }
+          digitalWriteFast(triggerPin, HIGH);
+          triggerState = true;
+        }
+
+        if (triggerState == false) {
+          return;
+        }
+
+        if (cmd == 'S')  // trial start
+        {
+          digitalWriteFast(startPin, HIGH);  // delay start
+          digitalWriteFast(endPin, LOW);     // outcome end / next trial start
+          digitalWriteFast(leftPin, LOW);
+        }
+        else if (cmd == 'L') // left cue
+        {
+          digitalWriteFast(leftPin, HIGH);
+          digitalWriteFast(startPin, LOW);  // cue start
+        }
+        else if (cmd == 'R') // right cue
+        {
+          digitalWriteFast(leftPin, LOW);
+          digitalWriteFast(startPin, LOW);  // cue start
+        }
+        else if (cmd == 'l') // left choice
+        {
+          digitalWriteFast(leftPin, HIGH);
+          digitalWriteFast(endPin, HIGH);  // outcome start
+        }
+        else if (cmd == 'r') // right choice
+        {
+          digitalWriteFast(leftPin, LOW);
+          digitalWriteFast(endPin, HIGH);  // outcome start
+        }
+        else if (cmd == 'e')  // session end
+        {
+          reset();
         }
     }
 }
 
 void checkWater() {
     if (waterState) {
-        if (now - waterDuration >= waterTime) {
+        if (now - waterTime >= waterDuration) {
+            rewardOff();
             waterState = false;
-            digitalWriteFast(waterPin, LOW);
-            Serial.println("Water end");
-        }
-    }
-}
-
-void checkAir() {
-    if (airState == ON) {
-        if (finishDuration > 0 && now - finishDuration >= airFinalTime) {
-    	    airState = DONE;
-    	    digitalWriteFast(airPin, LOW);
-    	}    	
-        else if (now - airDuration >= airIntervalTime) {
-            airState = OFF;
-            airIntervalTime = now;
-            digitalWriteFast(airPin, LOW);
-        }
-
-    }
-    else if (airState == OFF) {
-        if (now - intervalDuration >= airIntervalTime) {
-            airState = ON;
-            airIntervalTime = now;
-            digitalWrite(airPin, HIGH);
         }
     }
 }
