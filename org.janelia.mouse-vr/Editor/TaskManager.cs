@@ -35,7 +35,6 @@ namespace Janelia
         float punishmentDuration = 10f;
 
         public bool showConfig = false;
-        bool sendSlackNotification = false;
         string comPortPixArt = "COM4";
         string comPortTeensy = "COM3";
         bool allowRotationYaw = false;
@@ -68,6 +67,32 @@ namespace Janelia
             }
         }
 
+        private void OnEnable()
+        {
+            LoadLists();
+        }
+
+        // Read the animal/task dropdown lists once (writing defaults if missing).
+        // Done here rather than in OnGUI() so we don't touch the disk every repaint.
+        private void LoadLists()
+        {
+            if (!File.Exists(animalListFile))
+            {
+                using (StreamWriter file = new StreamWriter(animalListFile))
+                    file.Write("test,ANM001,ANM002");
+            }
+            using (StreamReader reader = File.OpenText(animalListFile))
+                animalList = reader.ReadLine().Split(',');
+
+            if (!File.Exists(taskListFile))
+            {
+                using (StreamWriter file = new StreamWriter(taskListFile))
+                    file.Write("Alter,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A,Beacon");
+            }
+            using (StreamReader reader = File.OpenText(taskListFile))
+                taskList = reader.ReadLine().Split(',');
+        }
+
         private void OnGUI()
         {
             EditorGUILayout.BeginVertical();
@@ -84,32 +109,14 @@ namespace Janelia
 
             EditorGUILayout.Space(20);
 
-            // Setup task parameters here
-            if (!File.Exists(animalListFile))
-            {
-                using (StreamWriter file = new StreamWriter(animalListFile))
-                {
-                    file.Write("test,ANM001,ANM002");
-                }
-            }
-            using (StreamReader reader = File.OpenText(animalListFile))
-            {
-                string line = reader.ReadLine();
-                animalList = line.Split(',');
-            }
-
-            if (!File.Exists(taskListFile))
-            {
-                using (StreamWriter file = new StreamWriter(taskListFile))
-                {
-                    file.Write("Alter,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A,Beacon,Nogo");
-                }
-            }
-            using (StreamReader reader = File.OpenText(taskListFile))
-            {
-                string line = reader.ReadLine();
-                taskList = line.Split(',');
-            }
+            // Lists are loaded once in OnEnable; guard + clamp in case the window
+            // opened before OnEnable ran or an index fell out of range.
+            if (animalList == null || taskList == null)
+                LoadLists();
+            if (animalList.Length > 0)
+                animalIndex = Mathf.Clamp(animalIndex, 0, animalList.Length - 1);
+            if (taskList.Length > 0)
+                taskIndex = Mathf.Clamp(taskIndex, 0, taskList.Length - 1);
 
             GUILayout.Label("Task parameters", EditorStyles.boldLabel);
             animalIndex = EditorGUILayout.Popup("Animal name", animalIndex, animalList);
@@ -151,7 +158,6 @@ namespace Janelia
             if (showConfig) {
                 GUILayout.Label("Connections", EditorStyles.boldLabel);
                 enableKeyboard = EditorGUILayout.Toggle("Enable Keyboard", enableKeyboard);
-                sendSlackNotification = EditorGUILayout.Toggle("Send Slack notification", sendSlackNotification);
                 comPortPixArt = EditorGUILayout.TextField("COM Port PixArt", comPortPixArt);
                 comPortTeensy = EditorGUILayout.TextField("COM Port Teensy", comPortTeensy);
 
@@ -186,6 +192,28 @@ namespace Janelia
         private void OnDestroy() {
         }
 
+        // Copy the GUI parameters onto the TaskController. Shared by Setup() and Ready()
+        // so the two can't drift (Setup() used to omit rewardMax and comPort).
+        private void ApplyTaskParameters(TaskController tc)
+        {
+            tc.animalName = animalList[animalIndex];
+            tc.task = taskList[taskIndex];
+            tc.nTrial = nTrial;
+            tc.cueRatio = cueRatio;
+            tc.successITI = successITI;
+            tc.failureITI = failureITI;
+            tc.delayDurationStart = delayDurationStart;
+            tc.delayDurationMean = delayDurationMean;
+            tc.delayDurationEnd = delayDurationEnd;
+            tc.rewardLatency = rewardLatency;
+            tc.rewardAmount = rewardAmount;
+            tc.rewardMax = rewardMax;
+            tc.punishmentLatency = punishmentLatency;
+            tc.punishmentDuration = punishmentDuration;
+            tc.note = notes;
+            tc.comPort = comPortTeensy;
+        }
+
         private void Setup()
         {
             // Player
@@ -213,21 +241,7 @@ namespace Janelia
             if (taskController == null)
                 taskController = player.AddComponent<TaskController>();
 
-            taskController.animalName = animalList[animalIndex];
-            taskController.task = taskList[taskIndex];
-            taskController.nTrial = nTrial;
-            taskController.cueRatio = cueRatio;
-            taskController.successITI = successITI;
-            taskController.failureITI = failureITI;
-            taskController.delayDurationStart = delayDurationStart;
-            taskController.delayDurationMean = delayDurationMean;
-            taskController.delayDurationEnd = delayDurationEnd;
-            taskController.rewardLatency = rewardLatency;
-            taskController.rewardAmount = rewardAmount;
-            taskController.punishmentLatency = punishmentLatency;
-            taskController.punishmentDuration = punishmentDuration;
-            taskController.note = notes;
-            taskController.sendSlackNotification = sendSlackNotification;
+            ApplyTaskParameters(taskController);
 
             // Player camera
             mainCamera = GameObject.Find("Main Camera");
@@ -284,25 +298,14 @@ namespace Janelia
         private void Ready()
         {
             player = GameObject.Find("Player");
+            if (player == null)
+            {
+                Debug.LogError("Run Setup before Ready: no 'Player' in the scene.");
+                return;
+            }
 
             taskController = player.GetComponent<TaskController>();
-            taskController.animalName = animalList[animalIndex];
-            taskController.task = taskList[taskIndex];
-            taskController.nTrial = nTrial;
-            taskController.cueRatio = cueRatio;
-            taskController.successITI = successITI;
-            taskController.failureITI = failureITI;
-            taskController.delayDurationStart = delayDurationStart;
-            taskController.delayDurationMean = delayDurationMean;
-            taskController.delayDurationEnd = delayDurationEnd;
-            taskController.rewardLatency = rewardLatency;
-            taskController.rewardAmount = rewardAmount;
-            taskController.rewardMax = rewardMax;
-            taskController.punishmentLatency = punishmentLatency;
-            taskController.punishmentDuration = punishmentDuration;
-            taskController.note = notes;
-            taskController.sendSlackNotification = sendSlackNotification;
-            taskController.comPort = comPortTeensy;
+            ApplyTaskParameters(taskController);
 
             playerController = player.GetComponent<PlayerController>();
             playerController.allowRotationYaw = allowRotationYaw;
@@ -329,6 +332,11 @@ namespace Janelia
 
         private void Start()
         {
+            if (player == null || taskController == null)
+            {
+                Debug.LogError("Run Setup/Ready before Start.");
+                return;
+            }
             Vr.BlankDisplay(false);
             Vr.Connect(true);
 
@@ -338,15 +346,18 @@ namespace Janelia
 
         private void Stop()
         {
-            taskController.Quit();
+            if (taskController != null)
+                taskController.Quit();
         }
         private void Water()
         {
-            taskController.Reward();
+            if (taskController != null)
+                taskController.Reward();
         }
         private void Restart()
         {
-            taskController.Restart();
+            if (taskController != null)
+                taskController.Restart();
         }
 
         // private void Water()

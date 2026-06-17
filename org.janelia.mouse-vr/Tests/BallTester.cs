@@ -90,7 +90,8 @@ namespace Janelia
         {
             float forward = dz * pitchScale * BALL_ARC_LENGTH_PER_DEGREE;
             float side = dx * rollScale * BALL_ARC_LENGTH_PER_DEGREE;
-            _rigidbody.velocity = (new Vector3(side, 0f, forward)) / Time.deltaTime;
+            if (Time.deltaTime > 0f)
+                _rigidbody.velocity = (new Vector3(side, 0f, forward)) / Time.deltaTime;
             dx = 0;
             dz = 0;
         }

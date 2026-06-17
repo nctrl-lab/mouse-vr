@@ -1,8 +1,6 @@
 ﻿// Include this script on gameObject to be controlled by Mouse Treadmill
 
 using System;
-using System.Linq;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Janelia
@@ -106,7 +104,6 @@ namespace Janelia
 
             // Read data and update
             _positionPrev = _position; // T-2
-            _rotationPrev = _rotation;
             _position = transform.position; // T-1
             _rotation = transform.eulerAngles;
             // if (!followPath)
@@ -152,8 +149,6 @@ namespace Janelia
             
             if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation - _rotationPrev);
-
-            _distance += treadmillLog.pitch * MouseTreadmillReader.BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier * Mathf.Cos(_rotation.y - _rotationPrev.y);
 
             // if (!followPath || pathCreator == null)
             // {
@@ -224,7 +219,7 @@ namespace Janelia
         }
 
         private Vector3 _position, _positionPrev, _rotation, _rotationPrev;
-        private float _distance = 0, _deltaDistance;
+        private float _deltaDistance;
         private MouseTreadmillReader _reader;
         private Rigidbody _rigidbody;
         private MouseTreadmillReader.MouseTreadmillLog treadmillLog = new MouseTreadmillReader.MouseTreadmillLog();

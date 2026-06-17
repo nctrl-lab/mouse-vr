@@ -99,7 +99,7 @@ void checkSerial() {
         }
         else if (cmd == 'd')
         {
-            int duration = Serial.parseInt();
+            unsigned long duration = Serial.parseInt();
             if (duration >= 1000 && duration <= 10000000)
             {
                 waterDuration = duration;

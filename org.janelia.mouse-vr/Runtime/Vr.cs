@@ -20,7 +20,11 @@ namespace Janelia
         public void Start()
         {
             player = GameObject.Find("Player");
-            if (player == null) Debug.LogError("The object 'Player' should exist.");
+            if (player == null)
+            {
+                Debug.LogError("The object 'Player' should exist.");
+                return;
+            }
             playerController = player.GetComponent<PlayerController>();
             _isConnected = playerController.allowMovement;
 
@@ -33,18 +37,18 @@ namespace Janelia
                 foreach (MeshFilter mesh in meshs)
                 {
                     string name = mesh.transform.name.ToLower(); // Let's use lower case naming only.
-                    models.Add(name, mesh.gameObject);
+                    models[name] = mesh.gameObject;
 
                     string[] subname = name.Trim('_').Split('_');
                     if (subname[0].ToLower().Contains("start"))
                     {
                         if (subname.Length == 2)
                         {
-                            starts.Add(subname[1], mesh.transform.position);
+                            starts[subname[1]] = mesh.transform.position;
                         }
                         else // no name
                         {
-                            starts.Add("", mesh.transform.position);
+                            starts[""] = mesh.transform.position;
                         }
                     }
                 }
@@ -130,8 +134,6 @@ namespace Janelia
 
         public void ApplyPhysics(string name, bool state=true)
         {
-            if (models == null)
-                Start();
             if (models.ContainsKey(name))
             {
                 MeshCollider meshCollider = models[name].GetComponent<MeshCollider>();
@@ -150,8 +152,6 @@ namespace Janelia
 
         public void Move(string name, Vector3 position)
         {
-            if (models == null)
-                Start();
             if (models.ContainsKey(name))
             {
                 models[name].transform.position = position;
@@ -160,8 +160,6 @@ namespace Janelia
 
         public Vector3 GetPosition(string name)
         {
-            if (models == null)
-                Start();
             if (name.StartsWith("console"))
                 return player.transform.position;
             else if (models.ContainsKey(name))
@@ -172,6 +170,8 @@ namespace Janelia
 
         public Vector3 GetPosition()
         {
+            if (player == null)
+                player = GameObject.Find("Player");
             return player.transform.position;
         }
     }
