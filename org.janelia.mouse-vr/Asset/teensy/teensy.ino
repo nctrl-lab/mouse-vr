@@ -3,13 +3,6 @@ unsigned long now;
 unsigned long waterDuration = 65000;
 unsigned long waterTime = 0;
 
-const unsigned long waterAmount[] = {13000,26000,39000,52000,65000,72000,79000,86000,93000,100000,107400,114800,122200,129600,137000};
-
-// 2026.06.02
-// 05ul = 65ms
-// 10ul = 100ms
-// 15ul = 137ms
-
 bool waterState = false;
 bool triggerState = false;
 
@@ -56,7 +49,7 @@ void checkSerial() {
             Serial.println("w: give water reward");
             Serial.println("0: reset (all outputs off)");
             Serial.println("i: open the water valve for 1 sec");
-            Serial.println("v10: set the water volume to 10 ul (1-15)");
+            Serial.println("v100: set the valve open duration to 100 ms");
             Serial.println("d58000: set the water valve duration as 58 msec");
             Serial.println("s: session start (trigger on)");
             Serial.println("S: trial start (delay start)");
@@ -79,16 +72,14 @@ void checkSerial() {
             delay(1000);
             rewardOff();
         }
-        else if (cmd == 'v')
+        else if (cmd == 'v')  // set valve-open duration in milliseconds (sent by Unity)
         {
-            int volume = Serial.parseInt();
-            if (volume >= 1 && volume <= 15)
+            unsigned long ms = Serial.parseInt();
+            if (ms >= 1 && ms <= 10000)
             {
-                waterDuration = waterAmount[volume - 1];
-                Serial.print("Water volume: ");
-                Serial.println(volume);
-                Serial.print("Water duration: ");
-                Serial.println(waterDuration);
+                waterDuration = ms * 1000;  // stored as microseconds
+                Serial.print("Water duration (ms): ");
+                Serial.println(ms);
             }
             else
             {

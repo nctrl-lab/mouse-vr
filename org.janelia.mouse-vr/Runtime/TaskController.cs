@@ -33,7 +33,8 @@ namespace Janelia
         public int[] recentChoice = {0b00000000, 0b00000000, 0b00000000, 0b00000000};
         public int iSucess = 0;
 
-        public int iReward, rewardAmount = 10;
+        public int iReward, rewardAmount = 10;   // uL per reward (from calibration); drives the iReward/rewardMax cap
+        public int rewardDuration = 60;          // valve-open time in ms (from calibration); sent to the Teensy
         public int rewardMax = 1500;
 
         private float delayDuration;
@@ -117,7 +118,7 @@ namespace Janelia
             LogParameter(); // Log task parameters (animal name, task, trial number, reward amount per trial)
             Reset(); // Reset trial-related variables
 
-            SetRewardAmount();
+            SetRewardDuration();
 
             vr.Start(); // This gets the list of object that needs to be controlled during task.
         }
@@ -829,11 +830,11 @@ namespace Janelia
             }
         }
 
-        public void SetRewardAmount()
+        public void SetRewardDuration()
         {
             if (_isOpen) {
-                serial.Write("v" + rewardAmount + "\n");
-                Debug.Log("Reward amount: " + rewardAmount + " ul");
+                serial.Write("v" + rewardDuration + "\n");  // teensy 'v' = valve open duration in ms
+                Debug.Log("Reward: " + rewardAmount + " ul / " + rewardDuration + " ms");
             }
         }
 
@@ -1021,6 +1022,7 @@ namespace Janelia
             taskParametersLog.nTrial = nTrial;
             taskParametersLog.cueRatio = cueRatio;
             taskParametersLog.rewardAmount = rewardAmount;
+            taskParametersLog.rewardDuration = rewardDuration;
             taskParametersLog.rewardLatency = rewardLatency;
             taskParametersLog.delayDurationStart = delayDurationStart;
             taskParametersLog.delayDurationMean = delayDurationMean;
@@ -1059,7 +1061,8 @@ namespace Janelia
             public string animalName;
             public string task;
             public int nTrial;
-            public int rewardAmount; // reward amount per trial
+            public int rewardAmount; // reward amount per trial (uL)
+            public int rewardDuration; // valve-open duration per reward (ms)
             public float delayDurationStart;
             public float delayDurationMean;
             public float delayDurationEnd;

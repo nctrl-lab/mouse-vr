@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -22,9 +23,17 @@ namespace Janelia
         int taskIndex = 0;
         string taskListFile = Path.Join(Application.dataPath, "taskList.csv");
 
-        int nTrial = 500, rewardAmount = 15;
+        int nTrial = 500;
         int rewardMax = 1000;
         int cueRatio = 50;
+
+        // Reward calibration produced by Asset/teensy/calibrate.py
+        string calibFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config", "mouse-vr", "water_calibration.json");
+        CalibTarget[] rewardCalib = new CalibTarget[0];
+        string[] rewardLabels = new string[0];
+        int rewardIndex = 0;
 
         float delayDurationStart = 30f;
         float delayDurationMean = 60f;
@@ -70,6 +79,7 @@ namespace Janelia
         private void OnEnable()
         {
             LoadLists();
+            LoadCalibration();
         }
 
         // Read the animal/task dropdown lists once (writing defaults if missing).
@@ -91,6 +101,29 @@ namespace Janelia
             }
             using (StreamReader reader = File.OpenText(taskListFile))
                 taskList = reader.ReadLine().Split(',');
+        }
+
+        // Load reward sizes from calibrate.py's JSON. Each entry's uL drives the
+        // iReward/rewardMax cap; its duration (ms) is sent to the Teensy valve.
+        private void LoadCalibration()
+        {
+            rewardCalib = new CalibTarget[0];
+            if (File.Exists(calibFile))
+            {
+                try
+                {
+                    CalibFile cf = JsonUtility.FromJson<CalibFile>(File.ReadAllText(calibFile));
+                    if (cf != null && cf.targets != null)
+                        rewardCalib = cf.targets;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Calibration load failed: " + e.Message);
+                }
+            }
+            rewardLabels = new string[rewardCalib.Length];
+            for (int i = 0; i < rewardCalib.Length; i++)
+                rewardLabels[i] = $"{rewardCalib[i].target_ul:0.#} uL  ({rewardCalib[i].duration_ms:0} ms)";
         }
 
         private void OnGUI()
@@ -132,7 +165,19 @@ namespace Janelia
             // delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
             // EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
-            rewardAmount = EditorGUILayout.IntField("Reward amount (uL)", rewardAmount);
+            EditorGUILayout.BeginHorizontal();
+            if (rewardCalib.Length > 0)
+            {
+                rewardIndex = Mathf.Clamp(rewardIndex, 0, rewardCalib.Length - 1);
+                rewardIndex = EditorGUILayout.Popup("Reward (calibrated)", rewardIndex, rewardLabels);
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Reward", "no calibration - run calibrate.py");
+            }
+            if (GUILayout.Button("Reload", GUILayout.MaxWidth(70)))
+                LoadCalibration();
+            EditorGUILayout.EndHorizontal();
             rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
             rewardMax = EditorGUILayout.IntField("Maximum Reward (uL)", rewardMax);
             // punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
@@ -206,7 +251,12 @@ namespace Janelia
             tc.delayDurationMean = delayDurationMean;
             tc.delayDurationEnd = delayDurationEnd;
             tc.rewardLatency = rewardLatency;
-            tc.rewardAmount = rewardAmount;
+            if (rewardCalib.Length > 0)
+            {
+                int i = Mathf.Clamp(rewardIndex, 0, rewardCalib.Length - 1);
+                tc.rewardAmount = Mathf.RoundToInt(rewardCalib[i].target_ul);
+                tc.rewardDuration = Mathf.RoundToInt(rewardCalib[i].duration_ms);
+            }
             tc.rewardMax = rewardMax;
             tc.punishmentLatency = punishmentLatency;
             tc.punishmentDuration = punishmentDuration;
@@ -393,5 +443,9 @@ namespace Janelia
         TaskController taskController;
         PlayerController playerController;
         ForceRenderRate forceRenderRate;
+
+        // Mirrors the JSON written by Asset/teensy/calibrate.py (water_calibration.json).
+        [Serializable] public class CalibTarget { public float target_ul; public float duration_ms; public int n_pulses; }
+        [Serializable] public class CalibFile { public float gap_ms; public CalibTarget[] targets; }
     }
 }

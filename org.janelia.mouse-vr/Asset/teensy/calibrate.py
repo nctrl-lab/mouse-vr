@@ -13,8 +13,8 @@ Firmware commands used (see the sketch's help):
 
 Workflow: pick a target volume, set a pulse duration, dispense N pulses (~1 mL
 total) into a tared container, weigh it (1 mg water ~= 1 ul), divide the weight by
-N for ul/pulse, adjust the duration, and transcribe it into the firmware's
-waterAmount[] table.
+N for ul/pulse, and adjust the duration until it matches. The targets are saved to
+water_calibration.json, which the Unity GUI reads to drive the reward valve.
 
 Requires:  pip install pyserial PyQt6
 Run:       python calibrate.py
@@ -22,7 +22,7 @@ Run:       python calibrate.py
 
 import json
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 try:
@@ -431,14 +431,14 @@ class CalibWindow(QMainWindow):
         self.log(f"saved {CONFIG_PATH}")
 
     def _load(self):
-        if CONFIG_PATH.exists():
+        data = {}
+        have_file = CONFIG_PATH.exists()
+        if have_file:
             try:
                 data = json.loads(CONFIG_PATH.read_text())
             except Exception as exc:
                 self.warn(f"Load failed: {exc}")
-                data = {}
-        else:
-            data = {}
+                data, have_file = {}, False
         try:
             self.gap.setValue(int(data.get("gap_ms", 300)))
         except (TypeError, ValueError):
@@ -448,11 +448,18 @@ class CalibWindow(QMainWindow):
             asdict(Target(target_ul=10.0, duration_ms=100.0, n_pulses=pulses_for_total(10.0))),
             asdict(Target(target_ul=15.0, duration_ms=130.0, n_pulses=pulses_for_total(15.0))),
         ]
+        keep = {f.name for f in fields(Target)}  # ignore stale keys (e.g. old measured_ul)
         for t in targets:
+            if not isinstance(t, dict):
+                continue
             try:
-                self.add_row(Target(**t))
+                self.add_row(Target(**{k: v for k, v in t.items() if k in keep}))
             except (TypeError, ValueError) as exc:
                 self.warn(f"Skipped bad target {t}: {exc}")
+        # First run (or an unreadable file): write the defaults so the config exists
+        # on disk for next time and for the Unity GUI to read.
+        if not have_file:
+            self._save()
 
     def closeEvent(self, event):
         self._save()
