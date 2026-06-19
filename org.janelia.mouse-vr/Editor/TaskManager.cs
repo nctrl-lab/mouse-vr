@@ -408,6 +408,10 @@ namespace Janelia
             // if (GameObject.Find("MouseCamera3") == null)
             SetupCamerasNGon.ShowWindow();
 
+            // Default to a blanked display; only an active trial unblanks it. (No-op on
+            // the very first Setup, before the MouseCameras exist; Ready() blanks too.)
+            Vr.BlankDisplay(true);
+
             Debug.Log("Setup done!");
         }
 
@@ -455,9 +459,10 @@ namespace Janelia
                 Debug.LogError("Run Setup/Ready before Start.");
                 return;
             }
-            Vr.BlankDisplay(false);
             Vr.Connect(true);
 
+            // Leave the display blanked; TaskController.Update() unblanks once a trial
+            // actually begins (iState == Start), so only trials are visible.
             taskController.iState = TaskController.States.Start;
         }
 

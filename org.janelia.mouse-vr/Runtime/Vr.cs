@@ -16,10 +16,8 @@ namespace Janelia
 
         public bool _isLightOn, _isConnected;
 
-        // Saved camera render state while the display is blanked (see BlankDisplay).
+        // Tracks blank state for the parameterless BlankDisplay() toggle.
         private static bool _isBlank = false;
-        private struct CameraState { public int cullingMask; public CameraClearFlags clearFlags; public Color backgroundColor; }
-        private static readonly Dictionary<Camera, CameraState> _savedCameras = new Dictionary<Camera, CameraState>();
 
         // Get the list of objects that needs to be controlled during task.
         public void Start()
@@ -61,46 +59,30 @@ namespace Janelia
         }
 
         // Black out the animal's display cameras (MouseCamera1-3) only, leaving the
-        // operator's Main Camera visible. Independent of the lighting model: each of
-        // those cameras renders nothing (cullingMask = 0) and clears to solid black.
-        // Original cull mask / clear flags are saved on blank and restored on unblank.
+        // operator's Main Camera visible. Stateless, so it survives the domain reload
+        // that entering Play mode triggers between Ready (blank) and Start (unblank):
+        //   blank   -> render nothing (cullingMask 0) and clear to solid black
+        //   unblank -> render every layer again, clearing to the skybox (the cameras'
+        //              default), independent of the lighting model.
         // Uses FindObjectsOfType (not Camera.allCameras) so it still catches the display
         // cameras while AdjoiningDisplaysCamera has them disabled (rendering to textures).
         public static void BlankDisplay(bool state) // true: black, false: show scene
         {
-            if (state)
+            foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
             {
-                foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
+                if (!cam.name.StartsWith("MouseCamera"))
+                    continue;
+                if (state)
                 {
-                    if (!cam.name.StartsWith("MouseCamera"))
-                        continue;
-                    if (!_savedCameras.ContainsKey(cam))
-                        _savedCameras[cam] = new CameraState
-                        {
-                            cullingMask = cam.cullingMask,
-                            clearFlags = cam.clearFlags,
-                            backgroundColor = cam.backgroundColor
-                        };
                     cam.cullingMask = 0;
                     cam.clearFlags = CameraClearFlags.SolidColor;
                     cam.backgroundColor = Color.black;
                 }
-            }
-            else
-            {
-                CameraState s;
-                foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
+                else
                 {
-                    if (!cam.name.StartsWith("MouseCamera"))
-                        continue;
-                    if (_savedCameras.TryGetValue(cam, out s))
-                    {
-                        cam.cullingMask = s.cullingMask;
-                        cam.clearFlags = s.clearFlags;
-                        cam.backgroundColor = s.backgroundColor;
-                    }
+                    cam.cullingMask = ~0; // every layer
+                    cam.clearFlags = CameraClearFlags.Skybox;
                 }
-                _savedCameras.Clear();
             }
             _isBlank = state;
         }

@@ -128,6 +128,7 @@ namespace Janelia
             {
                 try {
                     note = "start";
+                    Vr.BlankDisplay(false); // a trial is beginning: show the scene
                     Invoke(task, 0f);
                 }
                 catch (Exception e)
@@ -713,10 +714,9 @@ namespace Janelia
         {
             iState = States.Delay;
             vr.Teleport("ee");
-            Vr.BlankDisplay();
+            Vr.BlankDisplay(true); // reward-room ITI: black screen
             yield return new WaitForSeconds(delay);
-            iState = States.Start;
-            Vr.BlankDisplay();
+            iState = States.Start; // next trial; Update() unblanks when it begins
         }
         public void Restart()
         {
