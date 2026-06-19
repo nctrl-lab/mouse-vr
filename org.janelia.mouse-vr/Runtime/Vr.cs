@@ -64,11 +64,13 @@ namespace Janelia
         // operator's Main Camera visible. Independent of the lighting model: each of
         // those cameras renders nothing (cullingMask = 0) and clears to solid black.
         // Original cull mask / clear flags are saved on blank and restored on unblank.
+        // Uses FindObjectsOfType (not Camera.allCameras) so it still catches the display
+        // cameras while AdjoiningDisplaysCamera has them disabled (rendering to textures).
         public static void BlankDisplay(bool state) // true: black, false: show scene
         {
             if (state)
             {
-                foreach (Camera cam in Camera.allCameras)
+                foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
                 {
                     if (!cam.name.StartsWith("MouseCamera"))
                         continue;
@@ -87,7 +89,7 @@ namespace Janelia
             else
             {
                 CameraState s;
-                foreach (Camera cam in Camera.allCameras)
+                foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
                 {
                     if (!cam.name.StartsWith("MouseCamera"))
                         continue;
