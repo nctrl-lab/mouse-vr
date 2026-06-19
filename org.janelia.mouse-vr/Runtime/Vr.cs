@@ -60,16 +60,18 @@ namespace Janelia
             }
         }
 
-        // Show a true black screen, independent of the lighting model: every camera
-        // renders nothing (cullingMask = 0) and clears to solid black. The original
-        // cull mask / clear flags are saved on blank and restored on unblank, so this
-        // works whether the scene is lit by Lights or by flat ambient light.
+        // Black out the animal's display cameras (MouseCamera1-3) only, leaving the
+        // operator's Main Camera visible. Independent of the lighting model: each of
+        // those cameras renders nothing (cullingMask = 0) and clears to solid black.
+        // Original cull mask / clear flags are saved on blank and restored on unblank.
         public static void BlankDisplay(bool state) // true: black, false: show scene
         {
             if (state)
             {
                 foreach (Camera cam in Camera.allCameras)
                 {
+                    if (!cam.name.StartsWith("MouseCamera"))
+                        continue;
                     if (!_savedCameras.ContainsKey(cam))
                         _savedCameras[cam] = new CameraState
                         {
@@ -87,6 +89,8 @@ namespace Janelia
                 CameraState s;
                 foreach (Camera cam in Camera.allCameras)
                 {
+                    if (!cam.name.StartsWith("MouseCamera"))
+                        continue;
                     if (_savedCameras.TryGetValue(cam, out s))
                     {
                         cam.cullingMask = s.cullingMask;
