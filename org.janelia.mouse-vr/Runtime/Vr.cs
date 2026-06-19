@@ -58,19 +58,22 @@ namespace Janelia
             }
         }
 
-        // Black out the animal's display cameras (MouseCamera1-3) only, leaving the
-        // operator's Main Camera visible. Stateless, so it survives the domain reload
-        // that entering Play mode triggers between Ready (blank) and Start (unblank):
+        // Black out every scene camera (the operator's Main Camera and the animal's
+        // MouseCamera1-3 alike). Stateless, so it survives the domain reload that
+        // entering Play mode triggers between Ready (blank) and Start (unblank):
         //   blank   -> render nothing (cullingMask 0) and clear to solid black
         //   unblank -> render every layer again, clearing to the skybox (the cameras'
         //              default), independent of the lighting model.
         // Uses FindObjectsOfType (not Camera.allCameras) so it still catches the display
         // cameras while AdjoiningDisplaysCamera has them disabled (rendering to textures).
+        // Skips the AdjoiningDisplaysCamera compositor: its output already reflects the
+        // blanked display cameras, and forcing its cull mask back on would cost a wasted
+        // full-scene render. GetComponent(string) avoids an assembly reference to it.
         public static void BlankDisplay(bool state) // true: black, false: show scene
         {
             foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
             {
-                if (!cam.name.StartsWith("MouseCamera"))
+                if (cam.GetComponent("AdjoiningDisplaysCamera") != null)
                     continue;
                 if (state)
                 {
