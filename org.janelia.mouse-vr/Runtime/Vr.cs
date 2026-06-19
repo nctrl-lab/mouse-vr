@@ -16,6 +16,11 @@ namespace Janelia
 
         public bool _isLightOn, _isConnected;
 
+        // Saved camera render state while the display is blanked (see BlankDisplay).
+        private static bool _isBlank = false;
+        private struct CameraState { public int cullingMask; public CameraClearFlags clearFlags; public Color backgroundColor; }
+        private static readonly Dictionary<Camera, CameraState> _savedCameras = new Dictionary<Camera, CameraState>();
+
         // Get the list of objects that needs to be controlled during task.
         public void Start()
         {
@@ -55,18 +60,48 @@ namespace Janelia
             }
         }
 
-        public static void BlankDisplay(bool state) // true: off, false: on
+        // Show a true black screen, independent of the lighting model: every camera
+        // renders nothing (cullingMask = 0) and clears to solid black. The original
+        // cull mask / clear flags are saved on blank and restored on unblank, so this
+        // works whether the scene is lit by Lights or by flat ambient light.
+        public static void BlankDisplay(bool state) // true: black, false: show scene
         {
-            Light[] lights = GameObject.FindObjectsOfType<Light>();
-            foreach (Light light in lights)
-                light.enabled = !state;
+            if (state)
+            {
+                foreach (Camera cam in Camera.allCameras)
+                {
+                    if (!_savedCameras.ContainsKey(cam))
+                        _savedCameras[cam] = new CameraState
+                        {
+                            cullingMask = cam.cullingMask,
+                            clearFlags = cam.clearFlags,
+                            backgroundColor = cam.backgroundColor
+                        };
+                    cam.cullingMask = 0;
+                    cam.clearFlags = CameraClearFlags.SolidColor;
+                    cam.backgroundColor = Color.black;
+                }
+            }
+            else
+            {
+                CameraState s;
+                foreach (Camera cam in Camera.allCameras)
+                {
+                    if (_savedCameras.TryGetValue(cam, out s))
+                    {
+                        cam.cullingMask = s.cullingMask;
+                        cam.clearFlags = s.clearFlags;
+                        cam.backgroundColor = s.backgroundColor;
+                    }
+                }
+                _savedCameras.Clear();
+            }
+            _isBlank = state;
         }
 
         public static void BlankDisplay()
         {
-            Light[] lights = GameObject.FindObjectsOfType<Light>();
-            foreach (Light light in lights)
-                light.enabled = !light.enabled;
+            BlankDisplay(!_isBlank);
         }
 
         public static void Connect(bool state)

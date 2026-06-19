@@ -41,6 +41,8 @@ namespace Janelia
         float punishmentLatency = 4f;
         float punishmentDuration = 10f;
 
+        float lightIntensity = 1.0f; // flat ambient brightness (0 = black, 1 = white)
+
         public bool showConfig = false;
         string comPortPixArt = "COM4";
         string comPortTeensy = "COM3";
@@ -253,6 +255,13 @@ namespace Janelia
             // punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
 
             EditorGUILayout.Space(10);
+            GUILayout.Label("Display", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            lightIntensity = EditorGUILayout.Slider("Light intensity", lightIntensity, 0f, 1f);
+            if (EditorGUI.EndChangeCheck())
+                RenderSettings.ambientLight = Color.white * lightIntensity;
+
+            EditorGUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Notes", GUILayout.MaxWidth(80));
             notes = EditorGUILayout.TextArea(notes, GUILayout.Height(40));
@@ -374,26 +383,16 @@ namespace Janelia
             camera.targetDisplay = 0;
             camera.nearClipPlane = 0.1f;
 
-            // Light
-            mainLight = GameObject.Find("Directional Light"); // Although this will not be directional, this is the default unity light.
-            if (mainLight == null)
-                mainLight = new GameObject("Directional Light");
-            mainLight.transform.SetParent(player.transform);
-            mainLight.transform.localPosition = new Vector3(0, 1, -1);
-            mainLight.transform.localRotation = Quaternion.Euler(90, 0, 0);
-            mainLight.transform.localScale = new Vector3(1, 1, 1);
+            // Lighting: remove the legacy point light (the GameObject named
+            // "Directional Light", which actually held a point light) and light every
+            // object evenly with flat ambient light instead.
+            GameObject oldLight = GameObject.Find("Directional Light");
+            if (oldLight != null)
+                DestroyImmediate(oldLight);
 
-            // Lighting setting to dark
-            Material material = new Material(Shader.Find("Standard"));
-            RenderSettings.skybox = material;
-
-            Light light = mainLight.GetComponent<Light>();
-            if (light == null)
-                light = mainLight.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = Color.white;
-            light.range = 400;
-            light.shadows = LightShadows.None;
+            RenderSettings.skybox = new Material(Shader.Find("Standard"));
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;  // Lighting window: Environment Lighting Source = "Color"
+            RenderSettings.ambientLight = Color.white * lightIntensity;          // even illumination, brightness from the GUI slider
 
             // Environment
             environment = GameObject.Find("Environment");
@@ -505,7 +504,7 @@ namespace Janelia
         // }
 
 
-        GameObject player, environment, mainCamera, mainLight;
+        GameObject player, environment, mainCamera;
 
         private static TaskManager window;
         TaskController taskController;
