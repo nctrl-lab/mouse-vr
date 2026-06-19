@@ -26,7 +26,6 @@ namespace Janelia
         public States iState;
         public Choices iChoice, pChoice, cChoice;
         private int iCueRepeat, maxCueRepeat = 3;
-        public int cueRatio = 50;
         public int pType = -1;
         public int nTrialToWatch = 3;
         public int[] sumRight = {0,0,0,0};
@@ -42,7 +41,6 @@ namespace Janelia
         public float delayDurationMean = 60f;
         public float delayDurationEnd = 120f;
 
-        public float rewardLatency = 1.0f;
         public float punishmentLatency = 4f;
         public float punishmentDuration = 10f; // infinite if zero
 
@@ -253,19 +251,14 @@ namespace Janelia
         {
             if (note == "start")
             {
-                if (cueRatio == 50) {
-                    if (cChoice == Choices.None) {
-                        NextCue(2);
-                    }
-                    else if (cChoice == Choices.Left) {
-                        cChoice = Choices.Right;
-                    }
-                    else if (cChoice == Choices.Right) {
-                        cChoice = Choices.Left;
-                    }
+                if (cChoice == Choices.None) {
+                    NextCue(2);
                 }
-                else {
-                    NextCueRatio();
+                else if (cChoice == Choices.Left) {
+                    cChoice = Choices.Right;
+                }
+                else if (cChoice == Choices.Right) {
+                    cChoice = Choices.Left;
                 }
                 iState = States.Delay;
                 iTrial++;
@@ -321,7 +314,7 @@ namespace Janelia
         public void Zigzag_A_easy() { ZigzagA("e"); }
         public void Zigzag_A() { ZigzagA("z"); }
         
-        public void Alter()
+        public void Alternation()
         {
             /// Alternation task ///
             // 1. Start: teleport animal / place reward cue
@@ -514,12 +507,7 @@ namespace Janelia
             // 1. Start: teleport animal
             if (note == "start")
             {
-                if (cueRatio == 50) {
-                    NextCue(2);
-                }
-                else {
-                    NextCueRatio();
-                }
+                NextCue(2);
                 iState = States.Delay;
                 iTrial++;
                 Debug.Log("cue: " + cChoice);
@@ -804,14 +792,6 @@ namespace Janelia
             }
         }
 
-        public void NextCueRatio()
-        {
-            int v = Convert.ToInt32(rnd.Next(100) >= cueRatio) + 1;
-            if (task.StartsWith("Zigzag"))
-                cChoice = (Choices)v;
-        }
-
-
         public void Reward()
         {
             if (_isOpen)
@@ -994,7 +974,6 @@ namespace Janelia
             taskLog.cChoice = cChoice;
             taskLog.iReward = iReward;
             taskLog.delayDuration = delayDuration;
-            taskLog.rewardLatency = rewardLatency;
             // taskLog.punishmentLatency = punishmentLatency;
             taskLog.note = note;
             Logger.Log(taskLog);
@@ -1003,7 +982,7 @@ namespace Janelia
         private void PrintLog()
         {
             string output = "";
-            if ((task == "Beacon" || task == "Zigzag_B" || task == "Zigzag_B_easy" || task == "Alter" || task == "Zigzag_A" || task == "Zigzag_A_easy" || task == "Zigzag_A_superEasy") && iTrial>0)
+            if ((task == "Beacon" || task == "Zigzag_B" || task == "Zigzag_B_easy" || task == "Alternation" || task == "Zigzag_A" || task == "Zigzag_A_easy" || task == "Zigzag_A_superEasy") && iTrial>0)
             {
                 output += iCorrect + "/" + iTrial + " (" + (100*iCorrect/iTrial).ToString("0") + "%)" + ", (L: " + iTrial1 + "/R: " + iTrial2 + ")";
             }
@@ -1020,10 +999,8 @@ namespace Janelia
             taskParametersLog.animalName = animalName;
             taskParametersLog.task = task;
             taskParametersLog.nTrial = nTrial;
-            taskParametersLog.cueRatio = cueRatio;
             taskParametersLog.rewardAmount = rewardAmount;
             taskParametersLog.rewardDuration = rewardDuration;
-            taskParametersLog.rewardLatency = rewardLatency;
             taskParametersLog.delayDurationStart = delayDurationStart;
             taskParametersLog.delayDurationMean = delayDurationMean;
             taskParametersLog.delayDurationEnd = delayDurationEnd;
@@ -1049,7 +1026,6 @@ namespace Janelia
             public Choices cChoice; // Beacon cue
             public int iReward; // total reward amount in uL 
             public float delayDuration;
-            public float rewardLatency;
             public float punishmentLatency;
             public string note;
         }; private TaskLog taskLog = new TaskLog();
@@ -1066,8 +1042,6 @@ namespace Janelia
             public float delayDurationStart;
             public float delayDurationMean;
             public float delayDurationEnd;
-            public int cueRatio;
-            public float rewardLatency;
             public float punishmentLatency;
             public float punishmentDuration; // infinite if zero
             public string note;

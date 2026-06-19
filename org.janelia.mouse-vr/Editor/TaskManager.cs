@@ -25,7 +25,6 @@ namespace Janelia
 
         int nTrial = 500;
         int rewardMax = 1000;
-        int cueRatio = 50;
 
         // Reward calibration produced by Asset/teensy/calibrate.py
         string calibFile = Path.Combine(
@@ -39,7 +38,6 @@ namespace Janelia
         float delayDurationMean = 60f;
         float delayDurationEnd = 90f;
 
-        float rewardLatency = 1f;
         float punishmentLatency = 4f;
         float punishmentDuration = 10f;
 
@@ -97,7 +95,7 @@ namespace Janelia
             if (!File.Exists(taskListFile))
             {
                 using (StreamWriter file = new StreamWriter(taskListFile))
-                    file.Write("Alter,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A,Beacon");
+                    file.Write("Beacon,Zigzag_B_easy,Zigzag_B,Alternation,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A");
             }
             using (StreamReader reader = File.OpenText(taskListFile))
                 taskList = reader.ReadLine().Split(',');
@@ -124,6 +122,77 @@ namespace Janelia
             rewardLabels = new string[rewardCalib.Length];
             for (int i = 0; i < rewardCalib.Length; i++)
                 rewardLabels[i] = $"{rewardCalib[i].target_ul:0.#} uL  ({rewardCalib[i].duration_ms:0} ms)";
+        }
+
+        // Launch the Python calibration GUI (Asset/teensy/calibrate.py) with the
+        // conda 'base' interpreter (miniconda3). It writes water_calibration.json;
+        // press Reload afterwards to pick up the new values.
+        private void OpenCalibration()
+        {
+            string scriptPath = null;
+            foreach (string guid in AssetDatabase.FindAssets("calibrate"))
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guid);
+                if (p.EndsWith("calibrate.py"))
+                {
+                    scriptPath = Path.GetFullPath(p);
+                    break;
+                }
+            }
+            if (scriptPath == null || !File.Exists(scriptPath))
+            {
+                Debug.LogError("calibrate.py not found in the project.");
+                return;
+            }
+
+            string python = CondaBasePython();
+            if (python == null)
+            {
+                Debug.LogError("conda base Python not found. Set CONDA_PYTHON_EXE or install miniconda3/anaconda3 in the default location.");
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = python,
+                    Arguments = "\"" + scriptPath + "\"",
+                    WorkingDirectory = Path.GetDirectoryName(scriptPath),
+                    UseShellExecute = false,
+                });
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Failed to launch calibrate.py: " + e.Message);
+            }
+        }
+
+        // Locate the conda 'base' interpreter. Prefer CONDA_PYTHON_EXE (set when the
+        // editor is launched from a conda-initialised shell), else probe the default
+        // miniconda3/anaconda3 install dirs for the running platform.
+        private string CondaBasePython()
+        {
+            string env = Environment.GetEnvironmentVariable("CONDA_PYTHON_EXE");
+            if (!string.IsNullOrEmpty(env) && File.Exists(env))
+                return env;
+
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string[] candidates;
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+                candidates = new[] {
+                    Path.Combine(home, "miniconda3", "python.exe"),
+                    Path.Combine(home, "anaconda3", "python.exe"),
+                };
+            else
+                candidates = new[] {
+                    Path.Combine(home, "miniconda3", "bin", "python"),
+                    Path.Combine(home, "anaconda3", "bin", "python"),
+                };
+            foreach (string c in candidates)
+                if (File.Exists(c))
+                    return c;
+            return null;
         }
 
         private void OnGUI()
@@ -157,13 +226,12 @@ namespace Janelia
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             EditorGUILayout.Space(10);
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
-            cueRatio = EditorGUILayout.IntField("Cue ratio (0-100%)", cueRatio);
             successITI = EditorGUILayout.FloatField("successITI (s)", successITI);
             failureITI = EditorGUILayout.FloatField("failureITI (s)", failureITI);
             // delayDurationStart = EditorGUILayout.FloatField("Cue distance min (cm)", delayDurationStart);
             // delayDurationMean = EditorGUILayout.FloatField("Cue distance mean (cm)", delayDurationMean);
             // delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
-            // EditorGUILayout.Space(10);
+            EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
             if (rewardCalib.Length > 0)
@@ -175,10 +243,11 @@ namespace Janelia
             {
                 EditorGUILayout.LabelField("Reward", "no calibration - run calibrate.py");
             }
+            if (GUILayout.Button("Calibrate", GUILayout.MaxWidth(75)))
+                OpenCalibration();
             if (GUILayout.Button("Reload", GUILayout.MaxWidth(70)))
                 LoadCalibration();
             EditorGUILayout.EndHorizontal();
-            rewardLatency = EditorGUILayout.FloatField("Reward latency (s)", rewardLatency);
             rewardMax = EditorGUILayout.IntField("Maximum Reward (uL)", rewardMax);
             // punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
             // punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
@@ -244,13 +313,11 @@ namespace Janelia
             tc.animalName = animalList[animalIndex];
             tc.task = taskList[taskIndex];
             tc.nTrial = nTrial;
-            tc.cueRatio = cueRatio;
             tc.successITI = successITI;
             tc.failureITI = failureITI;
             tc.delayDurationStart = delayDurationStart;
             tc.delayDurationMean = delayDurationMean;
             tc.delayDurationEnd = delayDurationEnd;
-            tc.rewardLatency = rewardLatency;
             if (rewardCalib.Length > 0)
             {
                 int i = Mathf.Clamp(rewardIndex, 0, rewardCalib.Length - 1);
@@ -382,7 +449,9 @@ namespace Janelia
 
         private void Start()
         {
-            if (player == null || taskController == null)
+            player = GameObject.Find("Player");
+            taskController = player == null ? null : player.GetComponent<TaskController>();
+            if (taskController == null)
             {
                 Debug.LogError("Run Setup/Ready before Start.");
                 return;
@@ -390,7 +459,6 @@ namespace Janelia
             Vr.BlankDisplay(false);
             Vr.Connect(true);
 
-            taskController = player.GetComponent<TaskController>();
             taskController.iState = TaskController.States.Start;
         }
 
