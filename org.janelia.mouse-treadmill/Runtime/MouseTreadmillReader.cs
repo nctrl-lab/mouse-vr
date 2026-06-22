@@ -128,6 +128,7 @@ namespace Janelia
             Logger.Log(parameterLog);
         }
 
+        [Serializable]
         public class MouseTreadmillLog : Logger.Entry
         {
             public UInt64 readTimestampMs;
@@ -142,6 +143,7 @@ namespace Janelia
             public List<string> events = new List<string>();
         };
 
+        [Serializable]
         public class MouseTreadmillParameterLog : Logger.Entry
         {
             public bool allowRotationYaw;

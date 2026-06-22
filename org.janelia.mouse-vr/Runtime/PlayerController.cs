@@ -46,10 +46,10 @@ namespace Janelia
             
             // Check collider: set friction to zero
             Collider collider = GetComponent<Collider>();
-            PhysicMaterial material = new PhysicMaterial();
+            PhysicsMaterial material = new PhysicsMaterial();
             material.dynamicFriction = 0;
             material.staticFriction = 0;
-            material.frictionCombine = PhysicMaterialCombine.Minimum;
+            material.frictionCombine = PhysicsMaterialCombine.Minimum;
             collider.material = material;
 
             // Make sure the collider of camera screen is off
@@ -145,7 +145,7 @@ namespace Janelia
             //      4) Use Rigidbody.velocity, instead of transform.Translate or rigidbody.MovePosition.
 
             // _rigidbody.MovePosition(_position); // use this if there will be no collision
-            _rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
+            _rigidbody.linearVelocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
             
             if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation - _rotationPrev);

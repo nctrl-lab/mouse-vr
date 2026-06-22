@@ -1011,7 +1011,7 @@ namespace Janelia
         }
 
         // Log for every trial
-        [SerializeField]
+        [Serializable]
         private class TaskLog : Logger.Entry
         {
             public States iState;
@@ -1031,7 +1031,7 @@ namespace Janelia
         }; private TaskLog taskLog = new TaskLog();
 
         // Log for parameters
-        [SerializeField]
+        [Serializable]
         private class TaskParametersLog : Logger.Entry
         {
             public string animalName;
