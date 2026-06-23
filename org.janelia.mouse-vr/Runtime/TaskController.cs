@@ -551,7 +551,6 @@ namespace Janelia
                 {
                     serial.Write(iCue == Choices.Left ? "L" : "R"); // cued side
                 }
-                Debug.Log("cue: " + iCue);
                 CueOn();
                 LogTrial();
             }
@@ -738,7 +737,6 @@ namespace Janelia
                 // Send message to Teensy to give the reward
                 serial.Write("w");
                 iReward += rewardAmount;
-                Debug.Log("Reward");
             }
         }
 
