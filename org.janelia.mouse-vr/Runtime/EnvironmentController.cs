@@ -20,18 +20,6 @@ public class EnvironmentController : MonoBehaviour
             {
                 mesh.enabled = false;
             }
-            else
-            {
-                // I will just enable collider for all subject for all visible objects
-                if (meshcollider == null)
-                {
-                    meshcollider = mesh.gameObject.AddComponent<MeshCollider>();
-                }
-                else
-                {
-                    meshcollider.enabled = true;
-                }
-            }
 
             string name = mesh.name.Trim('_');
             string[] subname = name.Split('_');

@@ -34,13 +34,6 @@ namespace Janelia
         string[] rewardLabels = new string[0];
         int rewardIndex = 0;
 
-        float delayDurationStart = 30f;
-        float delayDurationMean = 60f;
-        float delayDurationEnd = 90f;
-
-        float punishmentLatency = 4f;
-        float punishmentDuration = 10f;
-
         float lightIntensity = 1.0f; // flat ambient brightness (0 = black, 1 = white)
 
         public bool showConfig = false;
@@ -230,9 +223,6 @@ namespace Janelia
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
             successITI = EditorGUILayout.FloatField("successITI (s)", successITI);
             failureITI = EditorGUILayout.FloatField("failureITI (s)", failureITI);
-            // delayDurationStart = EditorGUILayout.FloatField("Cue distance min (cm)", delayDurationStart);
-            // delayDurationMean = EditorGUILayout.FloatField("Cue distance mean (cm)", delayDurationMean);
-            // delayDurationEnd = EditorGUILayout.FloatField("Cue distance max (cm)", delayDurationEnd);
             EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
@@ -251,8 +241,6 @@ namespace Janelia
                 LoadCalibration();
             EditorGUILayout.EndHorizontal();
             rewardMax = EditorGUILayout.IntField("Maximum Reward (uL)", rewardMax);
-            // punishmentLatency = EditorGUILayout.FloatField("Air puff latency (s)", punishmentLatency);
-            // punishmentDuration = EditorGUILayout.FloatField("Air puff duration (s)", punishmentDuration);
 
             EditorGUILayout.Space(10);
             GUILayout.Label("Display", EditorStyles.boldLabel);
@@ -324,9 +312,6 @@ namespace Janelia
             tc.nTrial = nTrial;
             tc.successITI = successITI;
             tc.failureITI = failureITI;
-            tc.delayDurationStart = delayDurationStart;
-            tc.delayDurationMean = delayDurationMean;
-            tc.delayDurationEnd = delayDurationEnd;
             if (rewardCalib.Length > 0)
             {
                 int i = Mathf.Clamp(rewardIndex, 0, rewardCalib.Length - 1);
@@ -334,8 +319,6 @@ namespace Janelia
                 tc.rewardDuration = Mathf.RoundToInt(rewardCalib[i].duration_ms);
             }
             tc.rewardMax = rewardMax;
-            tc.punishmentLatency = punishmentLatency;
-            tc.punishmentDuration = punishmentDuration;
             tc.note = notes;
             tc.comPort = comPortTeensy;
         }
