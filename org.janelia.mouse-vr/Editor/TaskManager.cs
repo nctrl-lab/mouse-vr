@@ -55,6 +55,7 @@ namespace Janelia
 
         float successITI = 5.0f;
         float failureITI = 15.0f;
+        float choiceEmaAlpha = 0.3f; // EMA smoothing for the beacon right-choice estimate (0..1)
 
         // Teensy for single reward
         public SerialPort serial_temp;
@@ -90,7 +91,7 @@ namespace Janelia
             if (!File.Exists(taskListFile))
             {
                 using (StreamWriter file = new StreamWriter(taskListFile))
-                    file.Write("Beacon,Zigzag_B_easy,Zigzag_B,Alternation,Zigzag_A,Zigzag_A_easy,Zigzag_A_superEasy,Linear_A");
+                    file.Write("Linear,EasyBeacon,Beacon");
             }
             using (StreamReader reader = File.OpenText(taskListFile))
                 taskList = reader.ReadLine().Split(',');
@@ -223,6 +224,7 @@ namespace Janelia
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
             successITI = EditorGUILayout.FloatField("successITI (s)", successITI);
             failureITI = EditorGUILayout.FloatField("failureITI (s)", failureITI);
+            choiceEmaAlpha = EditorGUILayout.Slider("choiceEmaAlpha", choiceEmaAlpha, 0f, 1f);
             EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
@@ -312,6 +314,7 @@ namespace Janelia
             tc.nTrial = nTrial;
             tc.successITI = successITI;
             tc.failureITI = failureITI;
+            tc.choiceEmaAlpha = choiceEmaAlpha;
             if (rewardCalib.Length > 0)
             {
                 int i = Mathf.Clamp(rewardIndex, 0, rewardCalib.Length - 1);

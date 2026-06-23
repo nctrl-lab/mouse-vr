@@ -2,16 +2,39 @@
 
 ## Summary
 
-This branch is forked from [janelia-unity-toolkit](https://github.com/JaneliaSciComp/janelia-unity-toolkit) with additional functionality for rodent virtual reality experiment.  
+Unity code for a head-fixed rodent virtual-reality rig. The mouse runs on a treadmill ball read over serial; reward and triggers go to a Teensy. Forked from [janelia-unity-toolkit](https://github.com/JaneliaSciComp/janelia-unity-toolkit).
 
-## Installation summary
+## Tasks
+
+Pick a task in the MouseVR window (`Window > MouseVR`):
+
+- **Linear**: run a straight corridor to the end for reward.
+- **Beacon**: a visual beacon marks the rewarded side; go to it. The cue side is chosen to counter the mouse's left/right bias.
+- **EasyBeacon**: like Beacon, but a door and blocker close off the wrong side so only the cued side is reachable.
+
+## Run
+
+1. Open `Window > MouseVR`.
+2. Set animal, task, trial count, and reward, then **Setup**.
+3. **Ready** enters play (display blanked); **Start** begins trials; **Stop** ends the session.
+
+The dropdowns read `Assets/animalList.csv` and `Assets/taskList.csv`. Reward volume comes from `calibrate.py` (the **Calibrate** button).
+
+## Installation
 
 1. Install [Unity Hub](https://unity.com/download)
-2. Install Unity 2020.3 LTS from Unity Hub
-3. Download [this github](https://github.com/lapis42/mouse-vr)
+2. Install Unity 6.5 from Unity Hub
+3. Clone [this github](https://github.com/nctrl-lab/mouse-vr)
+
+```bash
+git clone https://github.com/nctrl-lab/mouse-vr
+cd mouse-vr
+git checkout "specific-branch-name-to-use"
+```
+
 4. Install [org.janelia.package-installer](https://github.com/lapis42/mouse-vr/tree/master/org.janelia.package-installer) package
 5. Install [org.janelia.mouse-vr](https://github.com/lapis42/mouse-vr/tree/master/org.janelia.mouse-vr) using "Window > Install Package and Dependencies" package
-6. Install [Bezier Path Creator](https://assetstore.unity.com/packages/tools/utilities/b-zier-path-creator-136082) from Asset Store
+6. Set **Edit > Project Settings > Player > Other Settings > Active Input Handling** to **Input Manager (Old)** (or **Both**). The rig uses the legacy `Input` API, which Unity 6 disables when this is set to "Input System Package (New)".
 7. Run "mouse-vr" package from the Unity editor's "Window" menu
 
 ## Installation
