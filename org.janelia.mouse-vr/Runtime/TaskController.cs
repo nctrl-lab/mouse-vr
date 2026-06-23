@@ -377,11 +377,11 @@ namespace Janelia
             {
                 if (iCue == Choices.Left)
                 {
-                    vr.Move("beacon", new Vector3(-1.5f, 2.4f, 4.5f));
+                    vr.Move("beacon", new Vector3(-1.5f, 1.65f, 4.5f));
                 }
                 else if (iCue == Choices.Right)
                 {
-                    vr.Move("beacon", new Vector3(1.5f, 2.4f, 4.5f));
+                    vr.Move("beacon", new Vector3(1.5f, 1.65f, 4.5f));
                 }
 
                 // EasyBeacon: block the uncued side (left cue blocks right, and vice versa).
@@ -389,13 +389,13 @@ namespace Janelia
                 {
                     if (iCue == Choices.Left)
                     {
-                        vr.Move("_blockerl_p_", new Vector3(0.75f, 0f, 3.5f));
-                        vr.Move("doorr", new Vector3(1.4034f, 0.5f, 4.5f));
+                        vr.Move("_blockerl_p_", new Vector3(1.0f, 0.5f, 3.85f));
+                        vr.Move("doorr", new Vector3(1.5f, 1.5f, 4.5f));
                     }
                     else
                     {
-                        vr.Move("_blockerr_p_", new Vector3(-0.75f, 0f, 3.5f));
-                        vr.Move("doorl", new Vector3(-1.5966f, 0.5f, 4.5f));
+                        vr.Move("_blockerr_p_", new Vector3(-1.0f, 0.5f, 3.85f));
+                        vr.Move("doorl", new Vector3(-1.5f, 1.5f, 4.5f));
                     }
                 }
             }
@@ -412,10 +412,10 @@ namespace Janelia
                 // Reset both, or last trial's door stays up.
                 if (p == "e")
                 {
-                    vr.Move("_blockerl_p_", new Vector3(0.75f, -1f, 3.5f));
-                    vr.Move("_blockerr_p_", new Vector3(-0.75f, -1f, 3.5f));
-                    vr.Move("doorr", new Vector3(1.4034f, -1f, 4.5f));
-                    vr.Move("doorl", new Vector3(-1.5966f, -1f, 4.5f));
+                    vr.Move("_blockerl_p_", new Vector3(1.0f, -10f, 3.85f));
+                    vr.Move("_blockerr_p_", new Vector3(-1.0f, -10f, 3.85f));
+                    vr.Move("doorr", new Vector3(1.5f, -10f, 4.5f));
+                    vr.Move("doorl", new Vector3(-1.5f, -10f, 4.5f));
                 }
             }
         }
