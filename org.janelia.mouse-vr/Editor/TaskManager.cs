@@ -55,6 +55,7 @@ namespace Janelia
 
         float successITI = 5.0f;
         float failureITI = 15.0f;
+        bool useCueCounter = true;   // anti-bias cue counter; off = full random 50/50
         float choiceEmaAlpha = 0.3f; // EMA smoothing for the beacon right-choice estimate (0..1)
 
         // Teensy for single reward
@@ -222,9 +223,12 @@ namespace Janelia
             nTrial = EditorGUILayout.IntField("Total trial number", nTrial);
             EditorGUILayout.Space(10);
             GUILayout.Label("Cue parameters", EditorStyles.boldLabel);
+            useCueCounter = EditorGUILayout.Toggle("Cue Counter", useCueCounter);
+            // choiceEmaAlpha only affects the anti-bias counter
+            using (new EditorGUI.DisabledScope(!useCueCounter))
+                choiceEmaAlpha = EditorGUILayout.Slider("choiceEmaAlpha", choiceEmaAlpha, 0f, 1f);
             successITI = EditorGUILayout.FloatField("successITI (s)", successITI);
             failureITI = EditorGUILayout.FloatField("failureITI (s)", failureITI);
-            choiceEmaAlpha = EditorGUILayout.Slider("choiceEmaAlpha", choiceEmaAlpha, 0f, 1f);
             EditorGUILayout.Space(10);
             GUILayout.Label("Reward parameters", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
@@ -314,6 +318,7 @@ namespace Janelia
             tc.nTrial = nTrial;
             tc.successITI = successITI;
             tc.failureITI = failureITI;
+            tc.useCueCounter = useCueCounter;
             tc.choiceEmaAlpha = choiceEmaAlpha;
             if (rewardCalib.Length > 0)
             {

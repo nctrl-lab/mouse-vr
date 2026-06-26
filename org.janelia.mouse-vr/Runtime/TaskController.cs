@@ -26,6 +26,7 @@ namespace Janelia
         public States iState;
         public Choices iChoice, iCue;
         public int pType = -1;
+        public bool useCueCounter = true;                // true: anti-bias cue (nextCueCounter); false: full random 50/50
         public double choiceEmaAlpha = 0.3;              // EMA weight for the right-choice estimate (0..1)
         public double[] avgRight = {0.5, 0.5, 0.5, 0.5}; // right-choice rate per pType
         public int iSuccess = 0;
@@ -354,6 +355,13 @@ namespace Janelia
 
         public void nextCueCounter()
         {
+            // Full-random mode: unbiased 50/50 cue every trial, ignoring choice history.
+            if (!useCueCounter)
+            {
+                iCue = (Choices)rnd.Next(1, 3);
+                return;
+            }
+
             // Cue against the mouse's bias: per context (pType) track its right-choice
             // rate (avgRight, an EMA) and cue the less-likely side. pType is the previous
             // (choice, rewarded?): 0/1 = left un/rewarded, 2/3 = right un/rewarded.
