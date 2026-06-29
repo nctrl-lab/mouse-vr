@@ -69,7 +69,8 @@ namespace Janelia
             Choice = 3,
             Success = 4, // outcome; Blackout then sets Start for the next trial
             Failure = 5, // outcome; Blackout then sets Start for the next trial
-            Other = 6    // out-of-state trigger; ignored
+            Other = 6,   // out-of-state trigger; ignored
+            Iti = 7      // inter-trial blackout (Blackout coroutine); NOT a trial-active state
         }
 
         // Left=1, Right=2 are used as numbers in nextCueCounter(); don't reorder.
@@ -204,16 +205,14 @@ namespace Janelia
             // 2. End: reached the end trigger -> reward and finish the trial
             else if (note.StartsWith("end")) // trial end & reward
             {
-                CancelInvoke(); // drop any queued Invoke before the ITI
-                if (iState == States.Delay)
+                if (iState != States.Delay)
                 {
-                    iState = States.Success;
-                    Reward();
-                    LogTrial();
+                    return;
                 }
-                else {
-                    iState = States.Other;
-                }
+                CancelInvoke(); // drop any queued Invoke before the ITI
+                iState = States.Success;
+                Reward();
+                LogTrial();
                 if (SessionRunning)
                 {
                     StartCoroutine(Blackout(successITI)); // black screen for the success ITI
@@ -329,7 +328,7 @@ namespace Janelia
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         public IEnumerator Blackout(float delay)
         {
-            iState = States.Delay;
+            iState = States.Iti; // ITI, not a trial-active state: keeps stray end/side re-touches from re-arming reward
             Vr.BlankDisplay(true);
             yield return new WaitForSeconds(delay);
             iState = States.Start; // next trial
