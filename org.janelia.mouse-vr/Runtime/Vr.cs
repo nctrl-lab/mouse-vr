@@ -16,11 +16,18 @@ namespace Janelia
 
         public bool _isLightOn, _isConnected;
 
+        // Tracks blank state for the parameterless BlankDisplay() toggle.
+        private static bool _isBlank = false;
+
         // Get the list of objects that needs to be controlled during task.
         public void Start()
         {
             player = GameObject.Find("Player");
-            if (player == null) Debug.LogError("The object 'Player' should exist.");
+            if (player == null)
+            {
+                Debug.LogError("The object 'Player' should exist.");
+                return;
+            }
             playerController = player.GetComponent<PlayerController>();
             _isConnected = playerController.allowMovement;
 
@@ -33,36 +40,59 @@ namespace Janelia
                 foreach (MeshFilter mesh in meshs)
                 {
                     string name = mesh.transform.name.ToLower(); // Let's use lower case naming only.
-                    models.Add(name, mesh.gameObject);
+                    models[name] = mesh.gameObject;
 
                     string[] subname = name.Trim('_').Split('_');
                     if (subname[0].ToLower().Contains("start"))
                     {
                         if (subname.Length == 2)
                         {
-                            starts.Add(subname[1], mesh.transform.position);
+                            starts[subname[1]] = mesh.transform.position;
                         }
                         else // no name
                         {
-                            starts.Add("", mesh.transform.position);
+                            starts[""] = mesh.transform.position;
                         }
                     }
                 }
             }
         }
 
-        public static void BlankDisplay(bool state) // true: off, false: on
+        // Black out every scene camera (the operator's Main Camera and the animal's
+        // MouseCamera1-3 alike). Stateless, so it survives the domain reload that
+        // entering Play mode triggers between Ready (blank) and Start (unblank):
+        //   blank   -> render nothing (cullingMask 0) and clear to solid black
+        //   unblank -> render every layer again, clearing to the skybox (the cameras'
+        //              default), independent of the lighting model.
+        // Uses FindObjectsOfType (not Camera.allCameras) so it still catches the display
+        // cameras while AdjoiningDisplaysCamera has them disabled (rendering to textures).
+        // Skips the AdjoiningDisplaysCamera compositor: its output already reflects the
+        // blanked display cameras, and forcing its cull mask back on would cost a wasted
+        // full-scene render. GetComponent(string) avoids an assembly reference to it.
+        public static void BlankDisplay(bool state) // true: black, false: show scene
         {
-            Light[] lights = GameObject.FindObjectsOfType<Light>();
-            foreach (Light light in lights)
-                light.enabled = !state;
+            foreach (Camera cam in GameObject.FindObjectsOfType<Camera>())
+            {
+                if (cam.GetComponent("AdjoiningDisplaysCamera") != null)
+                    continue;
+                if (state)
+                {
+                    cam.cullingMask = 0;
+                    cam.clearFlags = CameraClearFlags.SolidColor;
+                    cam.backgroundColor = Color.black;
+                }
+                else
+                {
+                    cam.cullingMask = ~0; // every layer
+                    cam.clearFlags = CameraClearFlags.Skybox;
+                }
+            }
+            _isBlank = state;
         }
 
         public static void BlankDisplay()
         {
-            Light[] lights = GameObject.FindObjectsOfType<Light>();
-            foreach (Light light in lights)
-                light.enabled = !light.enabled;
+            BlankDisplay(!_isBlank);
         }
 
         public static void Connect(bool state)
@@ -130,8 +160,6 @@ namespace Janelia
 
         public void ApplyPhysics(string name, bool state=true)
         {
-            if (models == null)
-                Start();
             if (models.ContainsKey(name))
             {
                 MeshCollider meshCollider = models[name].GetComponent<MeshCollider>();
@@ -150,8 +178,6 @@ namespace Janelia
 
         public void Move(string name, Vector3 position)
         {
-            if (models == null)
-                Start();
             if (models.ContainsKey(name))
             {
                 models[name].transform.position = position;
@@ -160,8 +186,6 @@ namespace Janelia
 
         public Vector3 GetPosition(string name)
         {
-            if (models == null)
-                Start();
             if (name.StartsWith("console"))
                 return player.transform.position;
             else if (models.ContainsKey(name))
@@ -172,6 +196,8 @@ namespace Janelia
 
         public Vector3 GetPosition()
         {
+            if (player == null)
+                player = GameObject.Find("Player");
             return player.transform.position;
         }
     }

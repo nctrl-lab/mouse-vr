@@ -35,8 +35,47 @@ using System.Runtime.InteropServices;
 using System.IO;
 #endif
 
+// Unity 6.5 (6000.5) turned the int-based instance-id API (EditorUtility.InstanceIDToObject /
+// Object.GetInstanceID) into a hard compile error, replacing it with the EntityId-based API
+// (EditorUtility.EntityIdToObject / Object.GetEntityId).  Alias the id storage type so the rest
+// of this file stays version-agnostic; see IdCompat below for the matching calls.
+#if UNITY_6000_5_OR_NEWER
+using CameraId = UnityEngine.EntityId;
+#else
+using CameraId = System.Int32;
+#endif
+
 namespace Janelia
 {
+    // Bridges the pre- and post-6.5 instance-id APIs.  The CameraId alias above selects the
+    // storage type (EntityId on 6.5+, int before); these helpers select the matching calls.
+    internal static class IdCompat
+    {
+        public static UnityEngine.Object ToObject(CameraId id)
+        {
+#if UNITY_6000_5_OR_NEWER
+            return EditorUtility.EntityIdToObject(id);
+#else
+            return EditorUtility.InstanceIDToObject(id);
+#endif
+        }
+
+        public static CameraId Of(UnityEngine.Object obj)
+        {
+#if UNITY_6000_5_OR_NEWER
+            return obj.GetEntityId();
+#else
+            return obj.GetInstanceID();
+#endif
+        }
+
+#if UNITY_6000_5_OR_NEWER
+        public static readonly CameraId None = UnityEngine.EntityId.None;
+#else
+        public static readonly CameraId None = 0;
+#endif
+    }
+
     //
     // The editor window that manages what cameras are displayed in what views.
     //
@@ -90,13 +129,13 @@ namespace Janelia
             {
                 Monitor monitor = _monitors[i];
                 EditorGUILayout.LabelField("Monitor " + (i + 1).ToString() + " at (" + monitor.left + ", " + monitor.top + ")");
-                Camera oldCamera = (Camera)EditorUtility.InstanceIDToObject(monitor.cameraInstanceId);
+                Camera oldCamera = (Camera)IdCompat.ToObject(monitor.cameraInstanceId);
                 Camera newCamera = (Camera)EditorGUILayout.ObjectField("Camera", oldCamera, typeof(Camera), true);
                 if (newCamera != null)
                 {
                     // Make sure the camera is viewed only once.
 
-                    int instanceId = newCamera.GetInstanceID();
+                    CameraId instanceId = IdCompat.Of(newCamera);
                     bool alreadyUsed = false;
                     foreach (Monitor other in _monitors)
                     {
@@ -113,7 +152,7 @@ namespace Janelia
                 }
                 else
                 {
-                    monitor.cameraInstanceId = 0;
+                    monitor.cameraInstanceId = IdCompat.None;
                 }
             }
         }
@@ -140,7 +179,7 @@ namespace Janelia
                 int i = 1;
                 foreach (Monitor monitor in _monitors)
                 {
-                    Camera camera = (Camera)EditorUtility.InstanceIDToObject(monitor.cameraInstanceId);
+                    Camera camera = (Camera)IdCompat.ToObject(monitor.cameraInstanceId);
                     if (camera != null)
                     {
                         FullScreenView window = EditorWindow.CreateInstance<FullScreenView>();
@@ -157,7 +196,7 @@ namespace Janelia
                         int height = (int)(monitor.height / monitor.pixelsPerPoint);
 
                         window.position = new Rect(x, y, width, height);
-                        window.cameraInstanceId = camera.GetInstanceID();
+                        window.cameraInstanceId = IdCompat.Of(camera);
 
                         if (i++ == _progressBoxScreen)
                         {
@@ -184,7 +223,7 @@ namespace Janelia
             EditorPrefs.SetInt(NumMonitorsPersistenceKey(), _monitors.Count);
             for (int i = 0; i < _monitors.Count; i++)
             {
-                Camera camera = (Camera)EditorUtility.InstanceIDToObject(_monitors[i].cameraInstanceId);
+                Camera camera = (Camera)IdCompat.ToObject(_monitors[i].cameraInstanceId);
                 string path = (camera != null) ? PathName(camera.gameObject) : "";
                 EditorPrefs.SetString(CameraNamePersistenceKey(i), path);
             }
@@ -207,7 +246,7 @@ namespace Janelia
                         Camera camera = obj.GetComponent<Camera>();
                         if (camera != null)
                         {
-                            _monitors[i].cameraInstanceId = camera.GetInstanceID();
+                            _monitors[i].cameraInstanceId = IdCompat.Of(camera);
                         }
                     }
                 }
@@ -256,7 +295,7 @@ namespace Janelia
             _savedFullScreenViews.cameraNames.Clear();
             for (int i = 0; i < _monitors.Count; i++)
             {
-                Camera camera = (Camera)EditorUtility.InstanceIDToObject(_monitors[i].cameraInstanceId);
+                Camera camera = (Camera)IdCompat.ToObject(_monitors[i].cameraInstanceId);
                 string path = (camera != null) ? PathName(camera.gameObject) : "";
                 _savedFullScreenViews.cameraNames.Add(path);
             }
@@ -286,7 +325,7 @@ namespace Janelia
                             Camera camera = obj.GetComponent<Camera>();
                             if (camera != null)
                             {
-                                _monitors[i].cameraInstanceId = camera.GetInstanceID();
+                                _monitors[i].cameraInstanceId = IdCompat.Of(camera);
                             }
                         }
                     }
@@ -363,7 +402,7 @@ namespace Janelia
     {
         public static List<FullScreenView> views;
 
-        public int cameraInstanceId;
+        public CameraId cameraInstanceId;
         private Camera _camera;
         private bool _rendering = false;
 
@@ -407,7 +446,7 @@ namespace Janelia
 
             if (_camera == null)
             {
-                _camera = (Camera)EditorUtility.InstanceIDToObject(cameraInstanceId);
+                _camera = (Camera)IdCompat.ToObject(cameraInstanceId);
                 if (_camera)
                 {
                     _camera.enabled = false;
@@ -538,7 +577,7 @@ namespace Janelia
         public int width;
         public int height;
         public float pixelsPerPoint;
-        public int cameraInstanceId;
+        public CameraId cameraInstanceId;
 
         static public List<Monitor> EnumeratedMonitors()
         {
@@ -600,7 +639,7 @@ namespace Janelia
             width = w;
             height = h;
             pixelsPerPoint = 1.0f;
-            cameraInstanceId = 0;
+            cameraInstanceId = IdCompat.None;
         }
 
         private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, ref RectApi pRect, IntPtr dwData);

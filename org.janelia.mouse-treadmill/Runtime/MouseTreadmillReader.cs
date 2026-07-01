@@ -6,7 +6,7 @@ namespace Janelia
 {
     public class MouseTreadmillReader
     {
-        public string comPortPixArt = "COM3";
+        public string comPortPixArt = "COM7";
         public bool allowMovement = true; // Move actor only when this is true
         public bool allowRotationYaw = false;
         public bool allowRotationRoll = false; // Rotation by roll instead of yaw
@@ -128,6 +128,7 @@ namespace Janelia
             Logger.Log(parameterLog);
         }
 
+        [Serializable]
         public class MouseTreadmillLog : Logger.Entry
         {
             public UInt64 readTimestampMs;
@@ -142,6 +143,7 @@ namespace Janelia
             public List<string> events = new List<string>();
         };
 
+        [Serializable]
         public class MouseTreadmillParameterLog : Logger.Entry
         {
             public bool allowRotationYaw;

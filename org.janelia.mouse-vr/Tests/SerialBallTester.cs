@@ -43,7 +43,7 @@ namespace Janelia
     public class SerialBallTester : MonoBehaviour
     {
         // Serial connection
-        public static SerialPort _serial;
+        private SerialPort _serial;
         public string comPort = "COM4";
 
         // Ball related variables
@@ -148,7 +148,11 @@ namespace Janelia
             if (endInSecond > 0 && Time.time > endInSecond)
             {
                 Debug.Log(readCount);
+#if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
+#elif UNITY_STANDALONE
+                Application.Quit();
+#endif
             }
 
         }
@@ -156,7 +160,7 @@ namespace Janelia
         void OnDisable()
         {
             _stopThread = true;
-            if (_serial.IsOpen)
+            if (_serial != null && _serial.IsOpen)
             {
                 _serial.Write(new byte[] { 254, 0 }, 0, 2);
                 _serial.Close();
@@ -176,7 +180,8 @@ namespace Janelia
                 if (_serial.BytesToRead >= PACKET_SIZE)
                 {
                     nReadBytes = PACKET_SIZE * (_serial.BytesToRead / PACKET_SIZE);
-                    _buffer = new byte[nReadBytes];
+                    if (_buffer == null || _buffer.Length < nReadBytes)
+                        _buffer = new byte[nReadBytes];
 
                     _serial.Read(_buffer, 0, nReadBytes);
                     // parse message

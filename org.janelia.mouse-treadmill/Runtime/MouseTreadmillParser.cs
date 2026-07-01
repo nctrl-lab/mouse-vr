@@ -36,7 +36,7 @@ namespace Janelia
                 int t0 = (int)readData[i+3] - 128;
                 if (t0 > CLIP_PIXEL || t0 < -CLIP_PIXEL)
                 {
-                    Debug.Log("MouseTreadmillParser.ParseMessage: too high y0");
+                    // Debug.Log("MouseTreadmillParser.ParseMessage: too high y0");
                     t0 = Mathf.Clamp(t0, -CLIP_PIXEL, CLIP_PIXEL);
                     t0 = (t0 > CLIP_PIXEL) ? CLIP_PIXEL : (t0 < -CLIP_PIXEL) ? -CLIP_PIXEL : t0;
                 }
@@ -44,7 +44,7 @@ namespace Janelia
                 int t1 = (int)readData[i+5] - 128;
                 if (t1 > CLIP_PIXEL || t1 < -CLIP_PIXEL)
                 {
-                    Debug.Log("MouseTreadmillParser.ParseMessage: too high y1");
+                    // Debug.Log("MouseTreadmillParser.ParseMessage: too high y1");
                     t1 = Mathf.Clamp(t1, -CLIP_PIXEL, CLIP_PIXEL);
                 }
 

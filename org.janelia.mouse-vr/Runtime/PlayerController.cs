@@ -1,8 +1,6 @@
 ﻿// Include this script on gameObject to be controlled by Mouse Treadmill
 
 using System;
-using System.Linq;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Janelia
@@ -25,7 +23,7 @@ namespace Janelia
         public float sideMultiplier = 1f;
         public bool enableKeyboard = false;
         public float keyboardSpeed = 3.0f; // 30 cm per second
-        public string comPortPixArt = "COM3";
+        public string comPortPixArt = "COM7";
 
         // Check physics setting is correct
         private void Awake()
@@ -48,10 +46,10 @@ namespace Janelia
             
             // Check collider: set friction to zero
             Collider collider = GetComponent<Collider>();
-            PhysicMaterial material = new PhysicMaterial();
+            PhysicsMaterial material = new PhysicsMaterial();
             material.dynamicFriction = 0;
             material.staticFriction = 0;
-            material.frictionCombine = PhysicMaterialCombine.Minimum;
+            material.frictionCombine = PhysicsMaterialCombine.Minimum;
             collider.material = material;
 
             // Make sure the collider of camera screen is off
@@ -106,7 +104,6 @@ namespace Janelia
 
             // Read data and update
             _positionPrev = _position; // T-2
-            _rotationPrev = _rotation;
             _position = transform.position; // T-1
             _rotation = transform.eulerAngles;
             // if (!followPath)
@@ -125,8 +122,8 @@ namespace Janelia
             {
                 float cos = Mathf.Cos(_rotation.y * Mathf.Deg2Rad);
                 float sin = Mathf.Sin(_rotation.y * Mathf.Deg2Rad);
-                float forward = Input.GetAxis("Vertical") * Time.deltaTime;
-                float side = Input.GetAxis("Horizontal") * Time.deltaTime;
+                float forward = Input.GetAxis("Vertical") * Time.deltaTime * forwardMultiplier;
+                float side = Input.GetAxis("Horizontal") * Time.deltaTime * sideMultiplier;
                 if (allowRotationYaw || allowRotationRoll)
                 {
                     _position.z += forward * cos * keyboardSpeed;
@@ -147,13 +144,11 @@ namespace Janelia
             //      3) Add PhysicMaterial to set up friction.
             //      4) Use Rigidbody.velocity, instead of transform.Translate or rigidbody.MovePosition.
 
-            _rigidbody.MovePosition(_position); // use this if there will be no collision
-            //_rigidbody.velocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
+            // _rigidbody.MovePosition(_position); // use this if there will be no collision
+            _rigidbody.linearVelocity = (_position - _positionPrev) / Time.deltaTime; // this works!!!
             
             if (allowRotationYaw || allowRotationRoll)
                 transform.Rotate(_rotation - _rotationPrev);
-
-            _distance += treadmillLog.pitch * MouseTreadmillReader.BALL_ARC_LENGTH_PER_DEGREE * forwardMultiplier * Mathf.Cos(_rotation.y - _rotationPrev.y);
 
             // if (!followPath || pathCreator == null)
             // {
@@ -224,7 +219,7 @@ namespace Janelia
         }
 
         private Vector3 _position, _positionPrev, _rotation, _rotationPrev;
-        private float _distance = 0, _deltaDistance;
+        private float _deltaDistance;
         private MouseTreadmillReader _reader;
         private Rigidbody _rigidbody;
         private MouseTreadmillReader.MouseTreadmillLog treadmillLog = new MouseTreadmillReader.MouseTreadmillLog();
